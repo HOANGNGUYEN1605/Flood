@@ -156,7 +156,6 @@
         setTimeout(function () { map.invalidateSize(); }, 150);
       }
       tai();
-      layViTriGPS(false);
     };
 
     var helpBtn = document.getElementById('btn-onboarding-help');
