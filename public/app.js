@@ -1,4 +1,4 @@
-// FloodSafe Đà Nẵng – Ultra-Modern Application Logic
+// FloodSafe Đà Nẵng – Ultra-Modern Application Logic with Complete DFD Specification
 (function () {
   'use strict';
 
@@ -66,10 +66,10 @@
   var MUC_SORT = { 'Khẩn cấp': 0, 'Nguy hiểm': 1, 'Cảnh báo': 2, 'Bình thường': 3, 'Mất kết nối – dữ liệu cũ': 4 };
 
   /* ── State ── */
-  var loaiXe = docLuu();
+  var loaiXe = docLuu(); // FR-13: lưu loại xe trên thiết bị
+  var khuVuc = '';       // F03: lọc theo khu vực
   var cauHinh = null;
   var map, markers = {}, daFit = false, timer = null, lanCuoi = null;
-  var prevValues = {};
   var activeStationId = null;
 
   /* ── Helpers ── */
@@ -95,7 +95,6 @@
     return Math.floor(s / 3600) + ' giờ trước';
   }
 
-  /* Extract friendly station title & subtitle */
   function parseStationName(t) {
     var raw = t.ten_vi_tri || '';
     if (raw.indexOf('–') !== -1) {
@@ -186,6 +185,41 @@
   }
 
   /* ═══════════════════════════════════════════════
+     AREA FILTER PILLS (F03, DE-04)
+     ═══════════════════════════════════════════════ */
+  function dungAreaPills() {
+    var box = document.getElementById('area-pills');
+    if (!box || !cauHinh || !cauHinh.danh_sach_khu_vuc) return;
+
+    box.innerHTML = '';
+    // Nút Tất cả
+    var btnAll = document.createElement('button');
+    btnAll.type = 'button';
+    btnAll.className = 'area-pill' + (khuVuc === '' ? ' active' : '');
+    btnAll.textContent = 'Tất cả';
+    btnAll.addEventListener('click', function () {
+      khuVuc = '';
+      dungAreaPills();
+      tai();
+    });
+    box.appendChild(btnAll);
+
+    // Từng khu vực
+    cauHinh.danh_sach_khu_vuc.forEach(function (kv) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'area-pill' + (khuVuc === kv ? ' active' : '');
+      b.textContent = kv;
+      b.addEventListener('click', function () {
+        khuVuc = kv;
+        dungAreaPills();
+        tai();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  /* ═══════════════════════════════════════════════
      CONFIRM VEHICLE CHANGE
      ═══════════════════════════════════════════════ */
   function moXacNhanDoiXe(xeMoi) {
@@ -235,15 +269,16 @@
   function ve(du) {
     var ds = document.getElementById('station-list');
     var info = document.getElementById('update-info');
-    info.textContent = 'Cập nhật lúc ' + gio(du.server_time) + ' · ' + du.tram.length + ' trạm';
+    info.textContent = 'Cập nhật lúc ' + gio(du.server_time) + ' · ' + du.tram.length + ' trạm' +
+      (khuVuc ? ' (' + khuVuc + ')' : '');
 
-    // Sort by danger level
+    // Sắp xếp: trạm có cờ dâng nhanh lên đầu (FR-17), sau đó theo mức nguy hiểm
     du.tram.sort(function (a, b) {
+      if (a.co_dang_nhanh !== b.co_dang_nhanh) return b.co_dang_nhanh ? 1 : -1;
       var ma = a.muc_canh_bao || 'Bình thường';
       var mb = b.muc_canh_bao || 'Bình thường';
       var sa = MUC_SORT[ma] != null ? MUC_SORT[ma] : 5;
       var sb = MUC_SORT[mb] != null ? MUC_SORT[mb] : 5;
-      if (a.co_dang_nhanh !== b.co_dang_nhanh) return b.co_dang_nhanh ? 1 : -1;
       if (sa !== sb) return sa - sb;
       return a.ma_tram.localeCompare(b.ma_tram);
     });
@@ -262,16 +297,16 @@
       var names = parseStationName(t);
       var h = t.muc_nuoc == null ? '—' : Math.round(t.muc_nuoc);
 
-      // Trend
+      // FR-12: Xu hướng nước so với 5 phút trước
       var trendHtml = '';
-      var prev = prevValues[t.ma_tram];
-      if (prev != null && t.muc_nuoc != null) {
-        var diff = t.muc_nuoc - prev;
-        if (diff > 0.4) trendHtml = '<span class="card-trend trend-up">↗ Đang dâng</span>';
-        else if (diff < -0.4) trendHtml = '<span class="card-trend trend-down">↘ Đang rút</span>';
-        else trendHtml = '<span class="card-trend trend-stable">→ Ổn định</span>';
+      var trendText = t.xu_huong || 'Ổn định';
+      if (trendText === 'Đang lên' || trendText === 'Đang dâng') {
+        trendHtml = '<span class="card-trend trend-up">↗ Đang lên</span>';
+      } else if (trendText === 'Đang rút') {
+        trendHtml = '<span class="card-trend trend-down">↘ Đang rút</span>';
+      } else {
+        trendHtml = '<span class="card-trend trend-stable">→ Ổn định</span>';
       }
-      if (t.muc_nuoc != null) prevValues[t.ma_tram] = t.muc_nuoc;
 
       var tg = t.thoi_diem_do
         ? '<span>⏱ ' + tuoi(du.server_time, t.thoi_diem_do) + '</span>'
@@ -358,7 +393,7 @@
   }
 
   /* ═══════════════════════════════════════════════
-     DETAIL DRAWER RENDERING
+     DETAIL DRAWER RENDERING (FR-12, FR-15, BRULE-03)
      ═══════════════════════════════════════════════ */
   function renderDrawerContent(t, du) {
     var drawer = document.getElementById('drawer-content');
@@ -385,7 +420,7 @@
       }
     }
 
-    // Dynamic threshold callout message
+    // Dynamic threshold callout message (BRULE-03 & C-08: không dùng chữ an toàn đứng riêng)
     var calloutMsg = '';
     if (mat) {
       calloutMsg = 'Chưa nhận được dữ liệu mới từ trạm đo. Không thể đánh giá mức rủi ro hiện tại.';
@@ -400,7 +435,7 @@
     } else if (t.muc_nuoc >= T - 10) {
       calloutMsg = 'Mực nước ' + Math.round(t.muc_nuoc) + ' cm. Đang ở mức cảnh báo đối với ' + xeLabel + '. Đi chậm, chú ý quan sát.';
     } else {
-      calloutMsg = 'Mực nước ' + Math.round(t.muc_nuoc) + ' cm. Nằm trong ngưỡng an toàn đối với ' + xeLabel + '. Lưu thông bình thường.';
+      calloutMsg = 'Mực nước ' + Math.round(t.muc_nuoc) + ' cm. Nằm trong mức bình thường đối với ' + xeLabel + '. Vẫn chú ý quan sát khi lưu thông.';
     }
 
     // Gauge pin position on 0 - 55+ scale
@@ -411,15 +446,15 @@
     }
     var pinColor = MAU[nhan] || '#94a3b8';
 
-    // Trend
-    var trendHtml = '';
-    var prev = prevValues[t.ma_tram];
-    if (prev != null && t.muc_nuoc != null) {
-      var diff = t.muc_nuoc - prev;
-      if (diff > 0.4) trendHtml = '<span class="gauge-trend-badge trend-up">↗ Đang dâng</span>';
-      else if (diff < -0.4) trendHtml = '<span class="gauge-trend-badge trend-down">↘ Đang rút</span>';
-      else trendHtml = '<span class="gauge-trend-badge trend-stable">→ Ổn định</span>';
-    }
+    // FR-12: Xu hướng 5 phút
+    var trendText = t.xu_huong || 'Ổn định';
+    var trendSub = (typeof t.chenh_lech_5p === 'number' && t.chenh_lech_5p !== 0)
+      ? ' (' + (t.chenh_lech_5p > 0 ? '+' : '') + t.chenh_lech_5p + ' cm so với 5p trước)'
+      : ' (so với 5p trước)';
+
+    var trendBadgeClass = 'trend-stable';
+    if (trendText === 'Đang lên' || trendText === 'Đang dâng') trendBadgeClass = 'trend-up';
+    else if (trendText === 'Đang rút') trendBadgeClass = 'trend-down';
 
     var isSimulation = t.ma_tram !== 'TR01';
     var tagHtml = isSimulation
@@ -450,8 +485,8 @@
         '<div class="gauge-header-row">' +
           '<div>' +
             '<div class="gauge-label">Mực nước hiện tại</div>' +
-            trendHtml +
-            '<div class="gauge-time-sub">Cập nhật ' + (t.thoi_diem_do ? tuoi(du.server_time, t.thoi_diem_do) : 'Chưa có') + '</div>' +
+            '<span class="gauge-trend-badge ' + trendBadgeClass + '">' + (trendText === 'Đang lên' ? '↗ ' : (trendText === 'Đang rút' ? '↘ ' : '→ ')) + esc(trendText) + '</span>' +
+            '<div class="gauge-time-sub">' + esc(trendSub) + '</div>' +
           '</div>' +
           '<div class="gauge-big-num">' + h + '<small> cm</small></div>' +
         '</div>' +
@@ -469,6 +504,27 @@
         '</div>' +
 
         '<div class="gauge-callout-box">' + esc(calloutMsg) + '</div>' +
+      '</div>' +
+
+      // FR-15: Biểu đồ lịch sử mực nước
+      '<div class="drawer-chart-card">' +
+        '<div class="chart-header">' +
+          '<div class="chart-title">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' +
+            'Biến thiên mực nước' +
+          '</div>' +
+          '<div class="chart-legend">' +
+            '<span><span class="chart-legend-dot" style="background:#2563eb"></span> Mực nước</span>' +
+            '<span><span class="chart-legend-dot" style="background:#dc2626"></span> Khẩn cấp (' + (T + 10) + 'cm)</span>' +
+          '</div>' +
+        '</div>' +
+        '<div id="chart-mount" class="chart-container">' +
+          '<div class="chart-empty">Đang tải lịch sử đo…</div>' +
+        '</div>' +
+        '<div class="chart-axis-labels">' +
+          '<span id="chart-t-start">Gần đây</span>' +
+          '<span id="chart-t-end">Hiện tại</span>' +
+        '</div>' +
       '</div>' +
 
       // Station Device Status
@@ -500,6 +556,117 @@
     '</div>';
 
     drawer.innerHTML = html;
+
+    // Load & draw historical SVG chart (FR-15)
+    taiVaVeBieuDo(t.ma_tram, T);
+  }
+
+  /* ═══════════════════════════════════════════════
+     HISTORICAL CHART (FR-15)
+     ═══════════════════════════════════════════════ */
+  function taiVaVeBieuDo(maTram, nguongT) {
+    var mount = document.getElementById('chart-mount');
+    if (!mount) return;
+
+    fetch('/api/tram/' + encodeURIComponent(maTram) + '/lich-su', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('status ' + r.status);
+        return r.json();
+      })
+      .then(function (res) {
+        var data = res.lich_su || [];
+        if (!data.length) {
+          mount.innerHTML = '<div class="chart-empty">Chưa có lịch sử đo cho trạm này.</div>';
+          return;
+        }
+
+        // Cập nhật nhãn thời gian trục X
+        var tStartEl = document.getElementById('chart-t-start');
+        var tEndEl = document.getElementById('chart-t-end');
+        if (tStartEl && data[0] && data[0].thoi_diem_do) {
+          tStartEl.textContent = gio(data[0].thoi_diem_do);
+        }
+        if (tEndEl && data[data.length - 1] && data[data.length - 1].thoi_diem_do) {
+          tEndEl.textContent = gio(data[data.length - 1].thoi_diem_do);
+        }
+
+        // Kích thước SVG
+        var W = 360;
+        var H = 140;
+        var padT = 15;
+        var padB = 20;
+        var padL = 25;
+        var padR = 15;
+
+        // Tìm Max Y để tính tỉ lệ (ít nhất là 35 hoặc ngưỡng khẩn cấp + 5)
+        var maxVal = Math.max(35, nguongT + 12);
+        data.forEach(function (d) {
+          if (typeof d.muc_nuoc === 'number') maxVal = Math.max(maxVal, d.muc_nuoc + 5);
+        });
+
+        function getY(val) {
+          var ratio = (val || 0) / maxVal;
+          return H - padB - ratio * (H - padT - padB);
+        }
+
+        function getX(i) {
+          if (data.length <= 1) return (padL + W - padR) / 2;
+          return padL + (i / (data.length - 1)) * (W - padL - padR);
+        }
+
+        // Tọa độ đường ngưỡng
+        var yKhancap = getY(nguongT + 10);
+        var yCanhbao = getY(nguongT - 10);
+
+        // Tạo path line & area
+        var points = data.map(function (d, i) {
+          return getX(i).toFixed(1) + ',' + getY(d.muc_nuoc).toFixed(1);
+        });
+
+        var pathLine = 'M ' + points.join(' L ');
+        var pathArea = 'M ' + points[0] + ' L ' + points.join(' L ') +
+          ' L ' + getX(data.length - 1).toFixed(1) + ',' + (H - padB) +
+          ' L ' + getX(0).toFixed(1) + ',' + (H - padB) + ' Z';
+
+        var svgHtml = '<svg class="chart-svg" viewBox="0 0 ' + W + ' ' + H + '">' +
+          '<defs>' +
+            '<linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">' +
+              '<stop offset="0%" stop-color="#2563eb" stop-opacity="0.25"/>' +
+              '<stop offset="100%" stop-color="#2563eb" stop-opacity="0.0"/>' +
+            '</linearGradient>' +
+          '</defs>' +
+
+          // Đường trục cơ sở (0 cm)
+          '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="#e2e8f0" stroke-width="1"/>' +
+          '<text x="' + (padL - 4) + '" y="' + (H - padB + 3) + '" font-size="9" fill="#94a3b8" text-anchor="end">0</text>' +
+
+          // Đường ngưỡng cảnh báo
+          '<line x1="' + padL + '" y1="' + yCanhbao + '" x2="' + (W - padR) + '" y2="' + yCanhbao + '" stroke="#eab308" stroke-dasharray="3,3" stroke-width="1" opacity="0.6"/>' +
+
+          // Đường ngưỡng khẩn cấp
+          '<line x1="' + padL + '" y1="' + yKhancap + '" x2="' + (W - padR) + '" y2="' + yKhancap + '" stroke="#dc2626" stroke-dasharray="3,3" stroke-width="1.2" opacity="0.8"/>' +
+          '<text x="' + (padL - 4) + '" y="' + (yKhancap + 3) + '" font-size="9" fill="#dc2626" font-weight="700" text-anchor="end">' + (nguongT + 10) + '</text>' +
+
+          // Vùng fill & đường line mực nước
+          '<path d="' + pathArea + '" fill="url(#chartGrad)"/>' +
+          '<path d="' + pathLine + '" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+
+        // Điểm chấm tròn tại các mốc
+        data.forEach(function (d, i) {
+          var cx = getX(i).toFixed(1);
+          var cy = getY(d.muc_nuoc).toFixed(1);
+          var tooltip = esc(gio(d.thoi_diem_do)) + ': ' + (d.muc_nuoc != null ? d.muc_nuoc + ' cm' : '—');
+          svgHtml += '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="#ffffff" stroke="#2563eb" stroke-width="2">' +
+            '<title>' + tooltip + '</title>' +
+          '</circle>';
+        });
+
+        svgHtml += '</svg>';
+        mount.innerHTML = svgHtml;
+      })
+      .catch(function () {
+        mount.innerHTML = '<div class="chart-empty">Không tải được biểu đồ lịch sử.</div>';
+      });
   }
 
   /* ═══════════════════════════════════════════════
@@ -593,7 +760,7 @@
   }
 
   /* ═══════════════════════════════════════════════
-     NETWORK / REFRESH POLLING
+     NETWORK / REFRESH POLLING (EV-11, F03, F04)
      ═══════════════════════════════════════════════ */
   function banner(hien, text) {
     var b = document.getElementById('banner');
@@ -611,7 +778,10 @@
 
   function tai() {
     clearTimeout(timer);
-    var url = '/api/tram' + (loaiXe ? '?loai_xe=' + encodeURIComponent(loaiXe) : '');
+    var url = '/api/tram?' +
+      (loaiXe ? 'loai_xe=' + encodeURIComponent(loaiXe) : '') +
+      (khuVuc ? '&khu_vuc=' + encodeURIComponent(khuVuc) : '');
+
     fetch(url, { cache: 'no-store' })
       .then(function (r) {
         if (r.status === 400 && loaiXe) { loaiXe = null; dungVehiclePills(); throw new Error('loai_xe'); }
@@ -773,6 +943,7 @@
         cauHinh = c;
         if (!c.loai_xe.some(function (x) { return x.loai_xe === loaiXe; })) loaiXe = null;
         dungThresholdTable();
+        dungAreaPills(); // F03: Khu vực
 
         // Always show onboarding first so user can choose or confirm vehicle
         document.getElementById('onboarding').style.display = 'flex';
@@ -791,6 +962,7 @@
       .then(function (c) {
         cauHinh = c;
         dungVehiclePills();
+        dungAreaPills();
         dungThresholdTable();
         banner(false);
         tai();
