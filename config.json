@@ -1,0 +1,46 @@
+{
+  "tram": [
+    {
+      "ma_tram": "TR01",
+      "ten_vi_tri": "Trạm thật – mô hình bể nước (sửa theo vị trí đặt)",
+      "vi_do": 16.0678,
+      "kinh_do": 108.2208,
+      "khu_vuc": "Hải Châu",
+      "chieu_cao_lap": 50,
+      "khoa_api": "tr01demokey_change_me_0123456789"
+    },
+    {
+      "ma_tram": "TR02",
+      "ten_vi_tri": "Trạm giả lập 1 – điểm ngập demo",
+      "vi_do": 16.064,
+      "kinh_do": 108.199,
+      "khu_vuc": "Thanh Khê",
+      "chieu_cao_lap": 50,
+      "khoa_api": "tr02demokey_change_me_0123456789"
+    },
+    {
+      "ma_tram": "TR03",
+      "ten_vi_tri": "Trạm giả lập 2 – điểm ngập demo",
+      "vi_do": 16.072,
+      "kinh_do": 108.238,
+      "khu_vuc": "Sơn Trà",
+      "chieu_cao_lap": 50,
+      "khoa_api": "tr03demokey_change_me_0123456789"
+    }
+  ],
+  "loai_xe": [
+    { "loai_xe": "XM", "ten_loai_xe": "Xe máy", "nguong_T": 15 },
+    { "loai_xe": "OT_THAP", "ten_loai_xe": "Ô tô gầm thấp", "nguong_T": 20 },
+    { "loai_xe": "OT_CAO", "ten_loai_xe": "Ô tô gầm cao", "nguong_T": 25 }
+  ],
+  "canh_bao": {
+    "nguong_bat_den": 15,
+    "nguong_tat_den": 13,
+    "nguong_dang_nhanh": 3,
+    "cua_so_so_sanh": 60,
+    "so_lan_lien_tiep": 2,
+    "thoi_gian_go_co": 180,
+    "thoi_gian_mat_ket_noi": 60,
+    "chu_ky_lam_moi": 3
+  }
+}
