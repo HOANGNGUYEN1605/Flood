@@ -2409,6 +2409,43 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
   white-space: nowrap;
 }
 
+/* ── Sovereignty Sea Badges (Biển Đông, Hoàng Sa, Trường Sa) ── */
+.sea-sovereignty-label {
+  pointer-events: none;
+}
+
+.sovereignty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid #2563eb;
+  padding: 4px 10px;
+  border-radius: 99px;
+  box-shadow: 0 4px 12px rgba(15, 30, 54, 0.18);
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
+.sovereignty-badge .badge-flag {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.sovereignty-badge .badge-name {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  line-height: 1.2;
+}
+
+.sovereignty-badge .badge-sub {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #dc2626;
+  line-height: 1.1;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    7. RESPONSIVE BREAKPOINTS
    ══════════════════════════════════════════════════════════════════════════ */

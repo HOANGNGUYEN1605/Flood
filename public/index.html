@@ -210,9 +210,12 @@
               <div class="route-input-bullet origin-bullet" title="Điểm xuất phát"></div>
               <div class="route-input-wrap">
                 <label class="route-input-label">Điểm xuất phát</label>
-                <input type="text" id="route-origin-input" class="route-input" placeholder="Vị trí của bạn (đang lấy GPS)..." readonly>
+                <input type="text" id="route-origin-input" class="route-input" placeholder="Nhập hoặc bấm trên bản đồ để chọn...">
               </div>
-              <button class="route-icon-btn" id="btn-my-location" title="Cập nhật vị trí GPS hiện tại">
+              <button class="route-icon-btn" id="btn-pick-origin" title="Bấm trên bản đồ để chọn điểm xuất phát">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </button>
+              <button class="route-icon-btn" id="btn-my-location" title="Định vị GPS thực tế">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
               </button>
             </div>
@@ -230,9 +233,9 @@
               <div class="route-input-bullet dest-bullet" title="Điểm đến"></div>
               <div class="route-input-wrap">
                 <label class="route-input-label">Điểm đến</label>
-                <input type="text" id="route-dest-input" class="route-input" placeholder="Bấm trên bản đồ hoặc chọn điểm bên dưới...">
+                <input type="text" id="route-dest-input" class="route-input" placeholder="Bấm trên bản đồ hoặc chọn gợi ý bên dưới...">
               </div>
-              <button class="route-icon-btn" id="btn-pick-map" title="Bấm vào bản đồ để chọn điểm đến">
+              <button class="route-icon-btn" id="btn-pick-map" title="Bấm trên bản đồ để chọn điểm đến">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               </button>
             </div>

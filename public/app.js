@@ -680,16 +680,64 @@
      ═══════════════════════════════════════════════ */
   function veBanDoInit() {
     map = L.map('map', { zoomControl: true }).setView([16.0678, 108.2208], 14);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> · Dữ liệu mô hình hoá',
+
+    // Chuẩn bản đồ Google Maps tiếng Việt đầy đủ Biển Đông, quần đảo Hoàng Sa, quần đảo Trường Sa
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=vi', {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      attribution: '&copy; Google Maps · Chủ quyền Biển Đảo Việt Nam',
     }).addTo(map);
 
+    themNhanChuQuyenBienDao();
+
     map.on('click', function (e) {
-      if (routeActive || isPickingMap) {
+      if (isPickingOrigin) {
+        apDungOrigin(e.latlng.lat, e.latlng.lng, 'Vị trí chọn: ' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4));
+        batTatChonOrigin();
+        if (destPos) tinhDuongDi();
+      } else if (routeActive || isPickingDest) {
         chonDiemDen(e.latlng.lat, e.latlng.lng, 'Tọa độ: ' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4));
-        if (isPickingMap) batTatChonBanDo();
+        if (isPickingDest) batTatChonDest();
       }
+    });
+  }
+
+  function themNhanChuQuyenBienDao() {
+    var nhanList = [
+      {
+        lat: 16.5000,
+        lng: 112.0000,
+        text: 'Quần đảo Hoàng Sa',
+        sub: '(TP. Đà Nẵng, Việt Nam)'
+      },
+      {
+        lat: 10.0000,
+        lng: 114.0000,
+        text: 'Quần đảo Trường Sa',
+        sub: '(Tỉnh Khánh Hòa, Việt Nam)'
+      },
+      {
+        lat: 14.5000,
+        lng: 113.2000,
+        text: 'Biển Đông',
+        sub: '(Việt Nam)'
+      }
+    ];
+
+    nhanList.forEach(function (item) {
+      var icon = L.divIcon({
+        className: 'sea-sovereignty-label',
+        html: '<div class="sovereignty-badge">' +
+                '<span class="badge-flag">🇻🇳</span>' +
+                '<div class="badge-content">' +
+                  '<div class="badge-name">' + esc(item.text) + '</div>' +
+                  '<div class="badge-sub">' + esc(item.sub) + '</div>' +
+                '</div>' +
+              '</div>',
+        iconSize: [170, 42],
+        iconAnchor: [85, 21]
+      });
+      L.marker([item.lat, item.lng], { icon: icon, interactive: false }).addTo(map);
     });
   }
 
@@ -817,12 +865,14 @@
      SMART FLOOD-AVOIDING ROUTE PLANNER
      ═══════════════════════════════════════════════ */
   var routeActive = false;
-  var isPickingMap = false;
-  var userPos = { lat: 16.0600, lng: 108.2230, name: 'Vị trí của bạn (Hải Châu, Đà Nẵng)' };
+  var isPickingOrigin = false;
+  var isPickingDest = false;
+  var userPos = { lat: 16.0678, lng: 108.2208, name: 'Vị trí của bạn' };
   var originPos = null;
   var destPos = null;
   var originMarker = null;
   var destMarker = null;
+  var gpsAccuracyCircle = null;
   var routePolylines = [];
   var hazardCircles = [];
 
@@ -933,31 +983,79 @@
 
   function layViTriGPS(showNotification) {
     var input = document.getElementById('route-origin-input');
-    if (!navigator.geolocation) {
-      if (showNotification) banner(true, 'Trình duyệt không hỗ trợ định vị GPS.');
-      apDungOrigin(userPos.lat, userPos.lng, userPos.name);
-      return;
+    if (input) input.value = 'Đang dò vị trí GPS thực tế...';
+    if (showNotification) banner(true, 'Đang xác định tọa độ GPS thực tế của bạn...');
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          var acc = Math.round(pos.coords.accuracy || 0);
+
+          userPos = { lat: lat, lng: lng, name: 'Vị trí GPS của bạn' };
+          apDungOrigin(lat, lng, 'Vị trí GPS của bạn (±' + acc + 'm)');
+
+          if (gpsAccuracyCircle) map.removeLayer(gpsAccuracyCircle);
+          if (acc > 0 && acc < 5000) {
+            gpsAccuracyCircle = L.circle([lat, lng], {
+              radius: acc,
+              color: '#2563eb',
+              weight: 1.5,
+              fillColor: '#93c5fd',
+              fillOpacity: 0.18
+            }).addTo(map);
+          }
+
+          map.flyTo([lat, lng], 15, { duration: 0.8 });
+          banner(true, '✓ Đã nhận diện đúng vị trí GPS thực tế của bạn.');
+          setTimeout(function () { banner(false); }, 3500);
+
+          if (destPos) tinhDuongDi();
+        },
+        function (err) {
+          // Fallback to IP geolocation when browser GPS is blocked/unavailable on PC
+          thuDinhViQuaIP(showNotification);
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
+    } else {
+      thuDinhViQuaIP(showNotification);
     }
+  }
 
-    if (input) input.value = 'Đang lấy vị trí GPS...';
+  function thuDinhViQuaIP(showNotification) {
+    fetch('https://ipwho.is/')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.success && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+          var lat = data.latitude;
+          var lng = data.longitude;
+          var tenCho = data.city || data.region || 'Vị trí của bạn';
 
-    navigator.geolocation.getCurrentPosition(
-      function (pos) {
-        var lat = pos.coords.latitude;
-        var lng = pos.coords.longitude;
-        userPos = { lat: lat, lng: lng, name: 'Vị trí hiện tại của bạn (GPS)' };
-        apDungOrigin(lat, lng, 'Vị trí hiện tại của bạn');
-        if (showNotification) banner(false);
-      },
-      function (err) {
-        apDungOrigin(userPos.lat, userPos.lng, 'Vị trí trung tâm Đà Nẵng (Hải Châu)');
-        if (showNotification) {
-          banner(true, 'Không thể định vị GPS (quyền bị từ chối). Đã đặt vị trí trung tâm Đà Nẵng.');
-          setTimeout(function () { banner(false); }, 4000);
+          userPos = { lat: lat, lng: lng, name: tenCho };
+          apDungOrigin(lat, lng, 'Vị trí mạng: ' + tenCho);
+          map.flyTo([lat, lng], 13, { duration: 0.8 });
+
+          banner(true, 'Đã xác định vị trí thực tế của bạn tại ' + tenCho + '. Bạn có thể kéo thả pin hoặc bấm nút chọn trên bản đồ nếu muốn đổi.');
+          setTimeout(function () { banner(false); }, 5000);
+
+          if (destPos) tinhDuongDi();
+        } else {
+          datViTriMacDinh(showNotification);
         }
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
-    );
+      })
+      .catch(function () {
+        datViTriMacDinh(showNotification);
+      });
+  }
+
+  function datViTriMacDinh(showNotification) {
+    apDungOrigin(userPos.lat, userPos.lng, userPos.name);
+    if (showNotification) {
+      banner(true, 'Chưa nhận được GPS tự động. Vui lòng bấm vào bản đồ hoặc kéo pin "Xuất phát" để đặt vị trí chính xác của bạn.');
+      setTimeout(function () { banner(false); }, 5000);
+    }
   }
 
   function apDungOrigin(lat, lng, name) {
@@ -980,8 +1078,8 @@
       originMarker = L.marker([lat, lng], { icon: icon, draggable: true }).addTo(map);
       originMarker.on('dragend', function (e) {
         var p = e.target.getLatLng();
-        originPos = { lat: p.lat, lng: p.lng, name: 'Điểm xuất phát tùy chỉnh' };
-        if (input) input.value = p.lat.toFixed(4) + ', ' + p.lng.toFixed(4);
+        originPos = { lat: p.lat, lng: p.lng, name: 'Tọa độ: ' + p.lat.toFixed(4) + ', ' + p.lng.toFixed(4) };
+        if (input) input.value = originPos.name;
         if (destPos) tinhDuongDi();
       });
     } else {
@@ -1009,8 +1107,8 @@
       destMarker = L.marker([lat, lng], { icon: icon, draggable: true }).addTo(map);
       destMarker.on('dragend', function (e) {
         var p = e.target.getLatLng();
-        destPos = { lat: p.lat, lng: p.lng, name: 'Điểm đến trên bản đồ' };
-        if (input) input.value = p.lat.toFixed(4) + ', ' + p.lng.toFixed(4);
+        destPos = { lat: p.lat, lng: p.lng, name: 'Điểm đến: ' + p.lat.toFixed(4) + ', ' + p.lng.toFixed(4) };
+        if (input) input.value = destPos.name;
         tinhDuongDi();
       });
     } else {
@@ -1040,13 +1138,29 @@
     tinhDuongDi();
   }
 
-  function batTatChonBanDo() {
-    isPickingMap = !isPickingMap;
-    var btn = document.getElementById('btn-pick-map');
-    if (btn) btn.classList.toggle('active', isPickingMap);
-    if (isPickingMap) {
-      banner(true, 'Nhấp vào bất kỳ vị trí nào trên bản đồ để chọn điểm đến.');
-      setTimeout(function () { banner(false); }, 3500);
+  function batTatChonOrigin() {
+    isPickingOrigin = !isPickingOrigin;
+    if (isPickingOrigin) isPickingDest = false;
+    var btnO = document.getElementById('btn-pick-origin');
+    var btnD = document.getElementById('btn-pick-map');
+    if (btnO) btnO.classList.toggle('active', isPickingOrigin);
+    if (btnD) btnD.classList.remove('active');
+    if (isPickingOrigin) {
+      banner(true, 'Nhấp vào bất kỳ điểm nào trên bản đồ để đặt ĐIỂM XUẤT PHÁT.');
+      setTimeout(function () { banner(false); }, 4000);
+    }
+  }
+
+  function batTatChonDest() {
+    isPickingDest = !isPickingDest;
+    if (isPickingDest) isPickingOrigin = false;
+    var btnO = document.getElementById('btn-pick-origin');
+    var btnD = document.getElementById('btn-pick-map');
+    if (btnD) btnD.classList.toggle('active', isPickingDest);
+    if (btnO) btnO.classList.remove('active');
+    if (isPickingDest) {
+      banner(true, 'Nhấp vào bất kỳ điểm nào trên bản đồ để chọn ĐIỂM ĐẾN.');
+      setTimeout(function () { banner(false); }, 4000);
     }
   }
 
@@ -1071,15 +1185,18 @@
 
   function dongBangTimDuong() {
     routeActive = false;
-    isPickingMap = false;
+    isPickingOrigin = false;
+    isPickingDest = false;
     var panel = document.getElementById('route-panel');
     var btn = document.getElementById('btn-toggle-route');
     var navLink = document.getElementById('nav-btn-route');
     if (panel) panel.style.display = 'none';
     if (btn) btn.classList.remove('active');
     if (navLink) navLink.classList.remove('active');
-    var pickBtn = document.getElementById('btn-pick-map');
-    if (pickBtn) pickBtn.classList.remove('active');
+    var btnO = document.getElementById('btn-pick-origin');
+    if (btnO) btnO.classList.remove('active');
+    var btnD = document.getElementById('btn-pick-map');
+    if (btnD) btnD.classList.remove('active');
   }
 
   function xoaDuongDi() {
@@ -1391,8 +1508,27 @@
     var btnSwap = document.getElementById('btn-swap-locations');
     if (btnSwap) btnSwap.addEventListener('click', daoChieuDiem);
 
-    var btnPick = document.getElementById('btn-pick-map');
-    if (btnPick) btnPick.addEventListener('click', batTatChonBanDo);
+    var btnPickOrigin = document.getElementById('btn-pick-origin');
+    if (btnPickOrigin) btnPickOrigin.addEventListener('click', batTatChonOrigin);
+
+    var btnPickDest = document.getElementById('btn-pick-map');
+    if (btnPickDest) btnPickDest.addEventListener('click', batTatChonDest);
+
+    var originInput = document.getElementById('route-origin-input');
+    if (originInput) {
+      originInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          var val = originInput.value.trim();
+          if (val) {
+            var match = val.match(/^(-?\d+(\.\d+)?)[,\s]+(-?\d+(\.\d+)?)$/);
+            if (match) {
+              apDungOrigin(parseFloat(match[1]), parseFloat(match[3]), 'Tọa độ: ' + val);
+              if (destPos) tinhDuongDi();
+            }
+          }
+        }
+      });
+    }
 
     var chips = document.querySelectorAll('.quick-chip');
     chips.forEach(function (chip) {
