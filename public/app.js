@@ -151,10 +151,12 @@
       document.getElementById('app').style.display = 'flex';
       dungVehiclePills();
       dungThresholdTable();
+      capNhatTagXeTrenBangTimDuong();
       if (map) {
         setTimeout(function () { map.invalidateSize(); }, 150);
       }
       tai();
+      layViTriGPS(false);
     };
 
     var helpBtn = document.getElementById('btn-onboarding-help');
@@ -251,7 +253,11 @@
       overlay.style.display = 'none';
       dungVehiclePills();
       dungThresholdTable();
+      capNhatTagXeTrenBangTimDuong();
       tai();
+      if (routeActive && destPos) {
+        setTimeout(tinhDuongDi, 400);
+      }
     });
 
     newCancel.addEventListener('click', function () {
@@ -678,6 +684,13 @@
       maxZoom: 19,
       attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> · Dữ liệu mô hình hoá',
     }).addTo(map);
+
+    map.on('click', function (e) {
+      if (routeActive || isPickingMap) {
+        chonDiemDen(e.latlng.lat, e.latlng.lng, 'Tọa độ: ' + e.latlng.lat.toFixed(4) + ', ' + e.latlng.lng.toFixed(4));
+        if (isPickingMap) batTatChonBanDo();
+      }
+    });
   }
 
   function ve_ban_do(du) {
@@ -801,6 +814,522 @@
   }
 
   /* ═══════════════════════════════════════════════
+     SMART FLOOD-AVOIDING ROUTE PLANNER
+     ═══════════════════════════════════════════════ */
+  var routeActive = false;
+  var isPickingMap = false;
+  var userPos = { lat: 16.0600, lng: 108.2230, name: 'Vị trí của bạn (Hải Châu, Đà Nẵng)' };
+  var originPos = null;
+  var destPos = null;
+  var originMarker = null;
+  var destMarker = null;
+  var routePolylines = [];
+  var hazardCircles = [];
+
+  function haversineDistance(lat1, lon1, lat2, lon2) {
+    var R = 6371000;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function distancePointToSegment(plat, plon, lat1, lon1, lat2, lon2) {
+    var d12 = haversineDistance(lat1, lon1, lat2, lon2);
+    if (d12 === 0) return haversineDistance(plat, plon, lat1, lon1);
+    var dx = lon2 - lon1;
+    var dy = lat2 - lat1;
+    var t = ((plon - lon1) * dx + (plat - lat1) * dy) / (dx * dx + dy * dy);
+    t = Math.max(0, Math.min(1, t));
+    var projLat = lat1 + t * dy;
+    var projLon = lon1 + t * dx;
+    return haversineDistance(plat, plon, projLat, projLon);
+  }
+
+  function layDiemNgapNguyHiem() {
+    if (!lanCuoi || !lanCuoi.tram) return [];
+    var hazards = [];
+    lanCuoi.tram.forEach(function (t) {
+      if (typeof t.vi_do !== 'number' || typeof t.kinh_do !== 'number') return;
+      if (t.trang_thai_ket_noi === 'Mất kết nối') return; // BRULE-04
+
+      var muc = t.muc_canh_bao || 'Bình thường';
+      var isHazard = false;
+      var radius = 220; // 220m
+
+      if (muc === 'Khẩn cấp') {
+        isHazard = true;
+        radius = 280;
+      } else if (muc === 'Nguy hiểm') {
+        isHazard = true;
+        radius = 240;
+      } else if (t.co_dang_nhanh) {
+        isHazard = true;
+        radius = 240;
+      } else if (muc === 'Cảnh báo' && loaiXe === 'XM') {
+        isHazard = true;
+        radius = 180;
+      }
+
+      if (isHazard) {
+        var names = parseStationName(t);
+        hazards.push({
+          ma_tram: t.ma_tram,
+          ten: names.title,
+          khu_vuc: t.khu_vuc || names.sub,
+          lat: t.vi_do,
+          lng: t.kinh_do,
+          muc_canh_bao: muc,
+          muc_nuoc: t.muc_nuoc,
+          co_dang_nhanh: t.co_dang_nhanh,
+          radius: radius
+        });
+      }
+    });
+    return hazards;
+  }
+
+  function kiemTraVaNgap(coords, hazards) {
+    var vaCham = [];
+    hazards.forEach(function (h) {
+      var minD = Infinity;
+      for (var i = 0; i < coords.length - 1; i++) {
+        var lon1 = coords[i][0], lat1 = coords[i][1];
+        var lon2 = coords[i + 1][0], lat2 = coords[i + 1][1];
+        var d = distancePointToSegment(h.lat, h.lng, lat1, lon1, lat2, lon2);
+        if (d < minD) minD = d;
+        if (minD < h.radius) break;
+      }
+      if (minD < h.radius) {
+        vaCham.push({ hazard: h, minDistance: minD });
+      }
+    });
+    return vaCham;
+  }
+
+  function tinhDetourWaypoints(hazard, origin, dest) {
+    var dLat = dest.lat - origin.lat;
+    var dLng = dest.lng - origin.lng;
+    var len = Math.sqrt(dLat * dLat + dLng * dLng) || 0.001;
+    var pLat = -dLng / len;
+    var pLng = dLat / len;
+    var offsetDeg = 0.007;
+    return [
+      { lat: hazard.lat + pLat * offsetDeg, lng: hazard.lng + pLng * offsetDeg },
+      { lat: hazard.lat - pLat * offsetDeg, lng: hazard.lng - pLng * offsetDeg }
+    ];
+  }
+
+  function capNhatTagXeTrenBangTimDuong() {
+    var tag = document.getElementById('route-vehicle-tag');
+    if (!tag || !cauHinh) return;
+    var cur = cauHinh.loai_xe.find(function (x) { return x.loai_xe === loaiXe; });
+    var ten = cur ? cur.ten_loai_xe : 'Phương tiện';
+    tag.textContent = 'Tự động né điểm ngập cho ' + ten;
+  }
+
+  function layViTriGPS(showNotification) {
+    var input = document.getElementById('route-origin-input');
+    if (!navigator.geolocation) {
+      if (showNotification) banner(true, 'Trình duyệt không hỗ trợ định vị GPS.');
+      apDungOrigin(userPos.lat, userPos.lng, userPos.name);
+      return;
+    }
+
+    if (input) input.value = 'Đang lấy vị trí GPS...';
+
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        userPos = { lat: lat, lng: lng, name: 'Vị trí hiện tại của bạn (GPS)' };
+        apDungOrigin(lat, lng, 'Vị trí hiện tại của bạn');
+        if (showNotification) banner(false);
+      },
+      function (err) {
+        apDungOrigin(userPos.lat, userPos.lng, 'Vị trí trung tâm Đà Nẵng (Hải Châu)');
+        if (showNotification) {
+          banner(true, 'Không thể định vị GPS (quyền bị từ chối). Đã đặt vị trí trung tâm Đà Nẵng.');
+          setTimeout(function () { banner(false); }, 4000);
+        }
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+    );
+  }
+
+  function apDungOrigin(lat, lng, name) {
+    originPos = { lat: lat, lng: lng, name: name };
+    var input = document.getElementById('route-origin-input');
+    if (input) input.value = name || (lat.toFixed(4) + ', ' + lng.toFixed(4));
+
+    if (!originMarker) {
+      var icon = L.divIcon({
+        className: '',
+        html: '<div class="route-pin-origin">' +
+                '<div class="route-pin-bubble bubble-origin">' +
+                  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>' +
+                '</div>' +
+                '<div class="route-pin-label">Xuất phát</div>' +
+              '</div>',
+        iconSize: [60, 60],
+        iconAnchor: [30, 20]
+      });
+      originMarker = L.marker([lat, lng], { icon: icon, draggable: true }).addTo(map);
+      originMarker.on('dragend', function (e) {
+        var p = e.target.getLatLng();
+        originPos = { lat: p.lat, lng: p.lng, name: 'Điểm xuất phát tùy chỉnh' };
+        if (input) input.value = p.lat.toFixed(4) + ', ' + p.lng.toFixed(4);
+        if (destPos) tinhDuongDi();
+      });
+    } else {
+      originMarker.setLatLng([lat, lng]);
+    }
+  }
+
+  function chonDiemDen(lat, lng, name) {
+    destPos = { lat: lat, lng: lng, name: name };
+    var input = document.getElementById('route-dest-input');
+    if (input) input.value = name;
+
+    if (!destMarker) {
+      var icon = L.divIcon({
+        className: '',
+        html: '<div class="route-pin-dest">' +
+                '<div class="route-pin-bubble bubble-dest">' +
+                  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>' +
+                '</div>' +
+                '<div class="route-pin-label">' + esc(name ? name.substring(0, 16) : 'Điểm đến') + '</div>' +
+              '</div>',
+        iconSize: [60, 60],
+        iconAnchor: [30, 20]
+      });
+      destMarker = L.marker([lat, lng], { icon: icon, draggable: true }).addTo(map);
+      destMarker.on('dragend', function (e) {
+        var p = e.target.getLatLng();
+        destPos = { lat: p.lat, lng: p.lng, name: 'Điểm đến trên bản đồ' };
+        if (input) input.value = p.lat.toFixed(4) + ', ' + p.lng.toFixed(4);
+        tinhDuongDi();
+      });
+    } else {
+      destMarker.setLatLng([lat, lng]);
+      var labelEl = destMarker.getElement();
+      if (labelEl) {
+        var lbl = labelEl.querySelector('.route-pin-label');
+        if (lbl) lbl.textContent = name ? name.substring(0, 16) : 'Điểm đến';
+      }
+    }
+
+    tinhDuongDi();
+  }
+
+  function daoChieuDiem() {
+    if (!originPos || !destPos) return;
+    var tmp = originPos;
+    originPos = destPos;
+    destPos = tmp;
+
+    document.getElementById('route-origin-input').value = originPos.name;
+    document.getElementById('route-dest-input').value = destPos.name;
+
+    if (originMarker) originMarker.setLatLng([originPos.lat, originPos.lng]);
+    if (destMarker) destMarker.setLatLng([destPos.lat, destPos.lng]);
+
+    tinhDuongDi();
+  }
+
+  function batTatChonBanDo() {
+    isPickingMap = !isPickingMap;
+    var btn = document.getElementById('btn-pick-map');
+    if (btn) btn.classList.toggle('active', isPickingMap);
+    if (isPickingMap) {
+      banner(true, 'Nhấp vào bất kỳ vị trí nào trên bản đồ để chọn điểm đến.');
+      setTimeout(function () { banner(false); }, 3500);
+    }
+  }
+
+  function batTatBangTimDuong() {
+    routeActive = !routeActive;
+    var panel = document.getElementById('route-panel');
+    var btn = document.getElementById('btn-toggle-route');
+    var navLink = document.getElementById('nav-btn-route');
+
+    if (routeActive) {
+      panel.style.display = 'block';
+      if (btn) btn.classList.add('active');
+      if (navLink) navLink.classList.add('active');
+      capNhatTagXeTrenBangTimDuong();
+      if (!originPos) {
+        layViTriGPS(false);
+      }
+    } else {
+      dongBangTimDuong();
+    }
+  }
+
+  function dongBangTimDuong() {
+    routeActive = false;
+    isPickingMap = false;
+    var panel = document.getElementById('route-panel');
+    var btn = document.getElementById('btn-toggle-route');
+    var navLink = document.getElementById('nav-btn-route');
+    if (panel) panel.style.display = 'none';
+    if (btn) btn.classList.remove('active');
+    if (navLink) navLink.classList.remove('active');
+    var pickBtn = document.getElementById('btn-pick-map');
+    if (pickBtn) pickBtn.classList.remove('active');
+  }
+
+  function xoaDuongDi() {
+    routePolylines.forEach(function (p) { map.removeLayer(p); });
+    routePolylines = [];
+    hazardCircles.forEach(function (c) { map.removeLayer(c); });
+    hazardCircles = [];
+    if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
+    destPos = null;
+    document.getElementById('route-dest-input').value = '';
+    document.getElementById('route-result').style.display = 'none';
+    document.getElementById('route-loading').style.display = 'none';
+    Array.from(document.querySelectorAll('.quick-chip')).forEach(function (c) { c.classList.remove('selected'); });
+  }
+
+  function tinhDuongDi() {
+    if (!originPos) {
+      layViTriGPS(true);
+      return;
+    }
+    if (!destPos) {
+      banner(true, 'Vui lòng chọn điểm đến trên bản đồ hoặc từ danh sách gợi ý.');
+      setTimeout(function () { banner(false); }, 3000);
+      return;
+    }
+
+    var loading = document.getElementById('route-loading');
+    var resultCard = document.getElementById('route-result');
+    if (loading) loading.style.display = 'flex';
+    if (resultCard) resultCard.style.display = 'none';
+
+    routePolylines.forEach(function (p) { map.removeLayer(p); });
+    routePolylines = [];
+    hazardCircles.forEach(function (c) { map.removeLayer(c); });
+    hazardCircles = [];
+
+    var hazards = layDiemNgapNguyHiem();
+
+    var urlDirect = 'https://router.project-osrm.org/route/v1/driving/' +
+      originPos.lng + ',' + originPos.lat + ';' + destPos.lng + ',' + destPos.lat +
+      '?overview=full&geometries=geojson&alternatives=true';
+
+    fetch(urlDirect)
+      .then(function (r) {
+        if (!r.ok) throw new Error('OSRM error ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data.routes || !data.routes.length) {
+          throw new Error('No route found');
+        }
+
+        var bestRoute = null;
+        var bestHazards = null;
+
+        for (var i = 0; i < data.routes.length; i++) {
+          var r = data.routes[i];
+          var vaCham = kiemTraVaNgap(r.geometry.coordinates, hazards);
+          if (vaCham.length === 0) {
+            bestRoute = r;
+            bestHazards = [];
+            break;
+          }
+          if (!bestRoute || vaCham.length < bestHazards.length) {
+            bestRoute = r;
+            bestHazards = vaCham;
+          }
+        }
+
+        if (bestHazards.length > 0 && hazards.length > 0) {
+          var primaryHazard = bestHazards[0].hazard;
+          var waypoints = tinhDetourWaypoints(primaryHazard, originPos, destPos);
+
+          var detourPromises = waypoints.map(function (wp) {
+            var urlDetour = 'https://router.project-osrm.org/route/v1/driving/' +
+              originPos.lng + ',' + originPos.lat + ';' +
+              wp.lng + ',' + wp.lat + ';' +
+              destPos.lng + ',' + destPos.lat +
+              '?overview=full&geometries=geojson';
+            return fetch(urlDetour)
+              .then(function (res) { return res.ok ? res.json() : null; })
+              .catch(function () { return null; });
+          });
+
+          return Promise.all(detourPromises).then(function (detourResults) {
+            detourResults.forEach(function (dData) {
+              if (dData && dData.routes && dData.routes.length) {
+                var dRoute = dData.routes[0];
+                var dVaCham = kiemTraVaNgap(dRoute.geometry.coordinates, hazards);
+                if (dVaCham.length < bestHazards.length) {
+                  bestRoute = dRoute;
+                  bestHazards = dVaCham;
+                }
+              }
+            });
+            return { route: bestRoute, hazardsOnRoute: bestHazards, allHazards: hazards };
+          });
+        }
+
+        return { route: bestRoute, hazardsOnRoute: bestHazards, allHazards: hazards };
+      })
+      .then(function (result) {
+        if (loading) loading.style.display = 'none';
+        hienThiKetQuaLoTrinh(result.route, result.hazardsOnRoute, result.allHazards);
+      })
+      .catch(function (err) {
+        if (loading) loading.style.display = 'none';
+        console.error('Route error:', err);
+        xuLyLoTrinhFallback(hazards);
+      });
+  }
+
+  function hienThiKetQuaLoTrinh(route, hazardsOnRoute, allHazards) {
+    if (!route || !route.geometry || !route.geometry.coordinates) return;
+
+    var coords = route.geometry.coordinates;
+    var latlngs = coords.map(function (c) { return [c[1], c[0]]; });
+    var hasDanger = hazardsOnRoute.length > 0;
+
+    var casingColor = hasDanger ? '#dc2626' : '#1d4ed8';
+    var lineColor = hasDanger ? '#ef4444' : '#2563eb';
+
+    var casing = L.polyline(latlngs, {
+      color: casingColor,
+      weight: 9,
+      opacity: 0.35,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    var line = L.polyline(latlngs, {
+      color: lineColor,
+      weight: 5,
+      opacity: 0.95,
+      dashArray: hasDanger ? '6, 6' : null,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    routePolylines.push(casing, line);
+
+    allHazards.forEach(function (h) {
+      var isHit = hazardsOnRoute.some(function (vh) { return vh.hazard.ma_tram === h.ma_tram; });
+      var color = isHit ? '#dc2626' : '#ea580c';
+
+      var circle = L.circle([h.lat, h.lng], {
+        radius: h.radius,
+        color: color,
+        weight: 2,
+        dashArray: '4, 4',
+        fillColor: color,
+        fillOpacity: isHit ? 0.28 : 0.12
+      }).addTo(map);
+
+      var tip = '<strong>' + esc(h.ten) + '</strong> (' + esc(h.muc_canh_bao) + ' - ' + h.muc_nuoc + ' cm)' +
+        (isHit
+          ? '<br><span style="color:#ef4444;font-weight:700">⚠️ Lộ trình đi qua điểm ngập này</span>'
+          : '<br><span style="color:#16a34a;font-weight:700">✓ Tuyến đường đã né tránh thành công</span>');
+
+      circle.bindTooltip(tip, { className: 'custom-leaflet-tooltip' });
+      hazardCircles.push(circle);
+    });
+
+    map.fitBounds(latlngs, { padding: [70, 70], maxZoom: 16 });
+
+    var resultCard = document.getElementById('route-result');
+    var statusCard = document.getElementById('route-status-card');
+    var statusIcon = document.getElementById('route-status-icon');
+    var statusTitle = document.getElementById('route-status-title');
+    var statusDesc = document.getElementById('route-status-desc');
+    var distEl = document.getElementById('route-dist');
+    var durEl = document.getElementById('route-duration');
+    var avoidEl = document.getElementById('route-avoid-count');
+    var warningsBox = document.getElementById('route-flood-warnings');
+    var btnGoogle = document.getElementById('btn-google-nav');
+
+    var km = (route.distance / 1000).toFixed(1);
+    var mins = Math.max(1, Math.round(route.duration / 60));
+    var avoidedCount = Math.max(0, allHazards.length - hazardsOnRoute.length);
+
+    distEl.textContent = km + ' km';
+    durEl.textContent = '~' + mins + ' phút';
+    avoidEl.textContent = avoidedCount + ' trạm';
+
+    var curXe = cauHinh ? cauHinh.loai_xe.find(function (x) { return x.loai_xe === loaiXe; }) : null;
+    var tenXe = curXe ? curXe.ten_loai_xe : 'phương tiện';
+
+    if (!hasDanger) {
+      statusCard.className = 'route-result-header status-safe';
+      statusIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+      statusTitle.textContent = 'Lộ trình tối ưu · Tránh điểm ngập';
+      statusDesc.textContent = allHazards.length > 0
+        ? 'Đã tự động tính đường né tránh ' + allHazards.length + ' vị trí ngập rủi ro theo ' + tenXe + '.'
+        : 'Không ghi nhận trạm ngập cản trở trên cung đường này theo ' + tenXe + '.';
+      warningsBox.style.display = 'none';
+    } else {
+      statusCard.className = 'route-result-header status-danger';
+      statusIcon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+      statusTitle.textContent = 'Lưu ý: Có điểm ngập trên tuyến';
+      statusDesc.textContent = 'Cung đường đi qua ' + hazardsOnRoute.length + ' điểm ngập nguy hiểm theo ' + tenXe + '. Hạn chế di chuyển!';
+
+      var warnHtml = '<div class="flood-warning-title">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+        'Điểm ngập cắt ngang lộ trình:</div><ul class="flood-warning-list">';
+
+      hazardsOnRoute.forEach(function (vh) {
+        warnHtml += '<li class="flood-warning-item">Trạm <strong>' + esc(vh.hazard.ten) + '</strong> (' + esc(vh.hazard.muc_canh_bao) +
+          (vh.hazard.muc_nuoc != null ? ' - ' + Math.round(vh.hazard.muc_nuoc) + ' cm' : '') + ')</li>';
+      });
+      warnHtml += '</ul>';
+
+      warningsBox.innerHTML = warnHtml;
+      warningsBox.style.display = 'block';
+    }
+
+    if (btnGoogle && originPos && destPos) {
+      btnGoogle.href = 'https://www.google.com/maps/dir/?api=1&origin=' +
+        originPos.lat + ',' + originPos.lng + '&destination=' + destPos.lat + ',' + destPos.lng;
+    }
+
+    resultCard.style.display = 'block';
+  }
+
+  function xuLyLoTrinhFallback(hazards) {
+    if (!originPos || !destPos) return;
+    var latlngs = [[originPos.lat, originPos.lng], [destPos.lat, destPos.lng]];
+    var line = L.polyline(latlngs, { color: '#2563eb', weight: 4, dashArray: '5, 8' }).addTo(map);
+    routePolylines.push(line);
+    map.fitBounds(latlngs, { padding: [60, 60] });
+
+    var resultCard = document.getElementById('route-result');
+    var statusCard = document.getElementById('route-status-card');
+    var statusTitle = document.getElementById('route-status-title');
+    var statusDesc = document.getElementById('route-status-desc');
+    var distEl = document.getElementById('route-dist');
+    var durEl = document.getElementById('route-duration');
+    var avoidEl = document.getElementById('route-avoid-count');
+
+    var d = haversineDistance(originPos.lat, originPos.lng, destPos.lat, destPos.lng);
+    distEl.textContent = (d / 1000).toFixed(1) + ' km (đường thẳng)';
+    durEl.textContent = '~' + Math.round((d / 1000) / 30 * 60) + ' phút';
+    avoidEl.textContent = '0';
+
+    statusCard.className = 'route-result-header status-warning';
+    statusTitle.textContent = 'Dẫn đường trực tiếp';
+    statusDesc.textContent = 'Không kết nối được dịch vụ chỉ đường OSRM. Hiển thị hướng tuyến trực tiếp.';
+    resultCard.style.display = 'block';
+  }
+
+  /* ═══════════════════════════════════════════════
      INTERACTIONS & MODALS
      ═══════════════════════════════════════════════ */
   function setupModals() {
@@ -835,6 +1364,7 @@
         var target = el.getAttribute('data-nav');
         if (target === 'levels') document.getElementById('levels-modal').style.display = 'flex';
         else if (target === 'about') document.getElementById('about-modal').style.display = 'flex';
+        else if (target === 'route') batTatBangTimDuong();
         else if (target === 'main') {
           document.getElementById('levels-modal').style.display = 'none';
           document.getElementById('about-modal').style.display = 'none';
@@ -844,6 +1374,60 @@
         }
       });
     });
+
+    // Smart Routing event listeners
+    var btnToggleRoute = document.getElementById('btn-toggle-route');
+    if (btnToggleRoute) btnToggleRoute.addEventListener('click', batTatBangTimDuong);
+
+    var btnCloseRoute = document.getElementById('btn-close-route');
+    if (btnCloseRoute) btnCloseRoute.addEventListener('click', dongBangTimDuong);
+
+    var btnGps = document.getElementById('btn-gps');
+    if (btnGps) btnGps.addEventListener('click', function () { layViTriGPS(true); });
+
+    var btnMyLoc = document.getElementById('btn-my-location');
+    if (btnMyLoc) btnMyLoc.addEventListener('click', function () { layViTriGPS(true); });
+
+    var btnSwap = document.getElementById('btn-swap-locations');
+    if (btnSwap) btnSwap.addEventListener('click', daoChieuDiem);
+
+    var btnPick = document.getElementById('btn-pick-map');
+    if (btnPick) btnPick.addEventListener('click', batTatChonBanDo);
+
+    var chips = document.querySelectorAll('.quick-chip');
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        chips.forEach(function (c) { c.classList.remove('selected'); });
+        chip.classList.add('selected');
+        var lat = parseFloat(chip.getAttribute('data-lat'));
+        var lng = parseFloat(chip.getAttribute('data-lng'));
+        var name = chip.getAttribute('data-name');
+        chonDiemDen(lat, lng, name);
+      });
+    });
+
+    var btnCalc = document.getElementById('btn-calc-route');
+    if (btnCalc) btnCalc.addEventListener('click', tinhDuongDi);
+
+    var btnClear = document.getElementById('btn-clear-route');
+    if (btnClear) btnClear.addEventListener('click', xoaDuongDi);
+
+    var destInput = document.getElementById('route-dest-input');
+    if (destInput) {
+      destInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          var val = destInput.value.trim();
+          if (val) {
+            var match = val.match(/^(-?\d+(\.\d+)?)[,\s]+(-?\d+(\.\d+)?)$/);
+            if (match) {
+              chonDiemDen(parseFloat(match[1]), parseFloat(match[3]), 'Tọa độ: ' + val);
+            } else {
+              tinhDuongDi();
+            }
+          }
+        }
+      });
+    }
 
     // Refresh button
     document.getElementById('btn-refresh').addEventListener('click', tai);
@@ -872,6 +1456,7 @@
     // Escape key
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
+        if (routeActive) dongBangTimDuong();
         document.getElementById('detail-drawer').style.display = 'none';
         document.getElementById('levels-modal').style.display = 'none';
         document.getElementById('about-modal').style.display = 'none';
