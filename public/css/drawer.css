@@ -1,0 +1,365 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   5. DETAIL DRAWER (RIGHT SIDE SHEET)
+   ══════════════════════════════════════════════════════════════════════════ */
+.detail-drawer {
+  width: 440px;
+  min-width: 320px;
+  max-width: 45vw;
+  background: var(--white);
+  border-left: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-drawer);
+  overflow-y: auto;
+  position: relative;
+  z-index: 900;
+  animation: drawerSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes drawerSlide {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawer-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  color: var(--gray-500);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: var(--transition);
+}
+
+.drawer-close:hover {
+  background: var(--gray-200);
+  color: var(--gray-800);
+}
+
+.drawer-body {
+  padding: 24px;
+}
+
+.drawer-header {
+  margin-bottom: 16px;
+}
+
+.drawer-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  margin-top: 6px;
+  line-height: 1.25;
+}
+
+.drawer-location {
+  font-size: 0.85rem;
+  color: var(--gray-500);
+  margin-top: 2px;
+}
+
+.pill-sensor-type {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 10px;
+  background: #ecfdf5;
+  color: #059669;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+/* ── Detail Alert Box ── */
+.drawer-alert-card {
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 12px;
+  border: 1.5px solid transparent;
+}
+
+.drawer-alert-card.alert-binhthuong {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+  color: var(--green-text);
+}
+.drawer-alert-card.alert-canhbao {
+  background: var(--yellow-bg);
+  border-color: var(--yellow-border);
+  color: var(--yellow-text);
+}
+.drawer-alert-card.alert-nguyhiem {
+  background: var(--orange-bg);
+  border-color: var(--orange-border);
+  color: var(--orange-text);
+}
+.drawer-alert-card.alert-khancap {
+  background: var(--red-bg);
+  border-color: var(--red-border);
+  color: var(--red-text);
+}
+.drawer-alert-card.alert-matketnoi {
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+  color: var(--gray-600);
+}
+
+.alert-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+}
+
+.alert-badge-capsule {
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.alert-card-headline {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.drawer-caption-text {
+  font-size: 0.76rem;
+  color: var(--gray-400);
+  line-height: 1.45;
+  margin-bottom: 18px;
+}
+
+/* ── Detail Water Level Card & Multi-Segment Gauge ── */
+.drawer-gauge-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 18px;
+}
+
+.gauge-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.gauge-label {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  margin-bottom: 4px;
+}
+
+.gauge-trend-badge {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.gauge-time-sub {
+  font-size: 0.74rem;
+  color: var(--gray-400);
+}
+
+.gauge-big-num {
+  font-size: 2.8rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--gray-900);
+  letter-spacing: -0.04em;
+}
+
+.gauge-big-num small {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gray-400);
+}
+
+/* Track bar */
+.gauge-track-container {
+  margin: 20px 0 10px;
+  position: relative;
+}
+
+.gauge-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right,
+    var(--green) 0%, var(--green) 18%,
+    var(--yellow) 18%, var(--yellow) 40%,
+    var(--orange) 40%, var(--orange) 60%,
+    var(--red) 60%, var(--red) 100%);
+  position: relative;
+}
+
+.gauge-pin {
+  position: absolute;
+  top: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid var(--white);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+  transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gauge-scale-numbers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--gray-400);
+  margin-top: 6px;
+}
+
+.gauge-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--gray-400);
+  margin-top: 2px;
+}
+
+.gauge-callout-box {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  line-height: 1.45;
+}
+
+/* ── Historical Water Level Chart Card (FR-15) ── */
+.drawer-chart-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 18px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.chart-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--gray-400);
+}
+
+.chart-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 3px;
+}
+
+.chart-container {
+  width: 100%;
+  height: 140px;
+  position: relative;
+}
+
+.chart-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.chart-empty {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+  font-size: 0.82rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--gray-200);
+}
+
+.chart-axis-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+
+/* ── Hardware Status Card ── */
+.drawer-status-card {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.status-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.status-card-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #0284c7;
+  letter-spacing: 0.06em;
+}
+
+.status-card-sub {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  margin-bottom: 14px;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 0.84rem;
+}
+
+.status-row + .status-row {
+  border-top: 1px solid var(--gray-200);
+}
+
+.status-row-val {
+  font-weight: 700;
+}

@@ -1,0 +1,284 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   4. REAL MAP SECTION
+   ══════════════════════════════════════════════════════════════════════════ */
+.map-section {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #e5e7eb;
+}
+
+.map-top-bar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 800;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.map-tag {
+  pointer-events: auto;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--navy-800);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.8);
+  border: 1px solid rgba(226,232,240,0.9);
+}
+
+.map-tool-btn {
+  pointer-events: auto;
+  width: 38px;
+  height: 38px;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(226,232,240,0.9);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-600);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+  transition: var(--transition);
+}
+
+.map-tool-btn:hover {
+  background: var(--gray-50);
+  color: var(--primary);
+}
+
+#map {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* ── Leaflet Controls Styling ── */
+.leaflet-bar {
+  border: none !important;
+  box-shadow: var(--shadow-md) !important;
+  border-radius: var(--radius-md) !important;
+  overflow: hidden;
+}
+
+.leaflet-bar a {
+  background: var(--white) !important;
+  color: var(--gray-700) !important;
+  border-bottom: 1px solid var(--gray-200) !important;
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  transition: var(--transition) !important;
+}
+
+.leaflet-bar a:hover {
+  background: var(--gray-50) !important;
+  color: var(--primary) !important;
+}
+
+/* ── Custom Map Pins ── */
+.custom-map-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.pin-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid var(--white);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.custom-map-pin:hover .pin-circle {
+  transform: scale(1.18);
+}
+
+.pin-circle.pin-binhthuong { background: var(--green); }
+.pin-circle.pin-canhbao { background: var(--yellow); }
+.pin-circle.pin-nguyhiem { background: var(--orange); }
+.pin-circle.pin-khancap { background: var(--red); }
+.pin-circle.pin-matketnoi { background: var(--gray-400); }
+.pin-circle.pin-chuachon { background: var(--gray-400); }
+
+.pin-circle.pin-rapid::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--red);
+  animation: radarWave 1.4s infinite;
+}
+
+@keyframes radarWave {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.pin-label {
+  margin-top: 3px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--gray-800);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* ── Map Tooltip ── */
+.custom-leaflet-tooltip {
+  background: rgba(15, 30, 54, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--white) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 6px 10px !important;
+  font-family: inherit !important;
+}
+
+.custom-leaflet-tooltip::before {
+  border-top-color: rgba(15, 30, 54, 0.95) !important;
+}
+
+.map-tooltip strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.map-tooltip span {
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Floating Legend ── */
+.map-legend {
+  position: absolute;
+  bottom: 24px;
+  left: 20px;
+  z-index: 800;
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(15,30,54,0.14), 0 1px 4px rgba(0,0,0,0.06);
+  border: 1px solid rgba(226,232,240,0.8);
+  min-width: 145px;
+  overflow: hidden;
+}
+
+.legend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  cursor: pointer;
+}
+
+.legend-header:hover {
+  background: var(--gray-50);
+}
+
+.legend-body {
+  padding: 0 12px 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  padding: 3px 0;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot-binhthuong { background: var(--green); }
+.dot-canhbao { background: var(--yellow); }
+.dot-nguyhiem { background: var(--orange); }
+.dot-khancap { background: var(--red); }
+
+/* ── Floating Emergency Controls ── */
+.floating-controls {
+  position: absolute;
+  bottom: 24px;
+  right: 20px;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.help-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  color: var(--gray-600);
+  font-size: 1.1rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.help-btn:hover {
+  background: var(--gray-50);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.emergency-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 20px;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: var(--white);
+  font-size: 0.9rem;
+  font-weight: 800;
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 16px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  transition: var(--transition);
+}
+
+.emergency-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+}
