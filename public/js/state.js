@@ -50,6 +50,7 @@ export const state = {
     gpsAccuracyCircle: null,
     routePolylines: [],
     hazardCircles: [],
+    hazardMarkers: [], // Chứa các icon trạm ngập hiển thị ở tâm khung tròn
     currentRoute: null
   }
 };

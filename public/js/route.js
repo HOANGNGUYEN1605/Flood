@@ -5,6 +5,7 @@
 import { state } from './state.js';
 import { esc, banner, haversineDistance, distancePointToSegment, parseStationName } from './utils.js';
 import { fetchIPLocation } from './api.js';
+import { selectStation } from './stations.js';
 
 /**
  * Tìm các trạm ngập nguy hiểm để định tuyến né tránh
@@ -343,6 +344,10 @@ export function xoaDuongDi() {
     state.route.routePolylines = [];
     state.route.hazardCircles.forEach(c => state.map.removeLayer(c));
     state.route.hazardCircles = [];
+    if (state.route.hazardMarkers) {
+      state.route.hazardMarkers.forEach(m => state.map.removeLayer(m));
+      state.route.hazardMarkers = [];
+    }
     if (state.route.destMarker) {
       state.map.removeLayer(state.route.destMarker);
       state.route.destMarker = null;
@@ -382,6 +387,10 @@ export async function tinhDuongDi() {
     state.route.routePolylines = [];
     state.route.hazardCircles.forEach(c => state.map.removeLayer(c));
     state.route.hazardCircles = [];
+    if (state.route.hazardMarkers) {
+      state.route.hazardMarkers.forEach(m => state.map.removeLayer(m));
+      state.route.hazardMarkers = [];
+    }
   }
 
   const hazards = layDiemNgapNguyHiem();
@@ -490,16 +499,16 @@ export function hienThiKetQuaLoTrinh(route, hazardsOnRoute, allHazards) {
 
   state.route.routePolylines.push(casing, line);
 
-  // Vẽ các vòng tròn bán kính ảnh hưởng ngập
+  // Vẽ các vòng tròn bán kính ảnh hưởng ngập KÈM ICON TRẠM NGẬP Ở TÂM
   allHazards.forEach(h => {
     const isCollision = hazardsOnRoute.some(vh => vh.hazard.ma_tram === h.ma_tram);
     const circle = L.circle([h.lat, h.lng], {
       radius: h.radius,
       color: isCollision ? '#dc2626' : '#f59e0b',
-      weight: isCollision ? 2 : 1,
-      dashArray: '4, 4',
+      weight: isCollision ? 2.5 : 1.5,
+      dashArray: '5, 5',
       fillColor: isCollision ? '#ef4444' : '#fef08a',
-      fillOpacity: isCollision ? 0.28 : 0.12
+      fillOpacity: isCollision ? 0.28 : 0.14
     }).addTo(state.map);
 
     circle.bindTooltip('Khu vực trạm ' + esc(h.ten) + ' (' + esc(h.muc_canh_bao) + ')', {
@@ -507,6 +516,50 @@ export function hienThiKetQuaLoTrinh(route, hazardsOnRoute, allHazards) {
     });
 
     state.route.hazardCircles.push(circle);
+
+    // Tạo Icon trạm ngập nổi bật tại tâm khung tròn
+    let bubbleClass = 'hazard-bubble-canhbao';
+    let iconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 4v8M12 16v.01M2 19c2.5-2 5 2 7.5 0s5-2 7.5 0 5-2 5 0M2 22c2.5-2 5 2 7.5 0s5-2 7.5 0 5-2 5 0"/></svg>';
+
+    if (h.muc_canh_bao === 'Khẩn cấp') {
+      bubbleClass = 'hazard-bubble-khancap';
+      iconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    } else if (h.muc_canh_bao === 'Nguy hiểm') {
+      bubbleClass = 'hazard-bubble-nguyhiem';
+      iconSvg = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    }
+
+    const depthText = (h.muc_nuoc != null) ? Math.round(h.muc_nuoc) + 'cm' : '';
+
+    const hazardIcon = L.divIcon({
+      className: '',
+      html: '<div class="hazard-station-pin">' +
+              '<div class="hazard-pin-bubble ' + bubbleClass + '">' +
+                iconSvg +
+              '</div>' +
+              '<div class="hazard-pin-badge">' +
+                '<span>' + esc(h.ten) + '</span>' +
+                (depthText ? '<span class="hazard-badge-depth">· ' + depthText + '</span>' : '') +
+              '</div>' +
+            '</div>',
+      iconSize: [120, 64],
+      iconAnchor: [60, 21]
+    });
+
+    const marker = L.marker([h.lat, h.lng], {
+      icon: hazardIcon,
+      zIndexOffset: 1000
+    }).addTo(state.map);
+
+    marker.on('click', () => {
+      const t = state.lanCuoi && state.lanCuoi.tram ? state.lanCuoi.tram.find(x => x.ma_tram === h.ma_tram) : null;
+      if (t) {
+        selectStation(t, state.lanCuoi);
+      }
+    });
+
+    if (!state.route.hazardMarkers) state.route.hazardMarkers = [];
+    state.route.hazardMarkers.push(marker);
   });
 
   state.map.fitBounds(latlngs, { padding: [60, 60] });
