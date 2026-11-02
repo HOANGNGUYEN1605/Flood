@@ -6,7 +6,7 @@ import { state } from './state.js';
 import { esc, banner, haversineDistance, distancePointToSegment, parseStationName } from './utils.js';
 import { fetchIPLocation } from './api.js';
 import { selectStation } from './stations.js';
-import { setupPlaceAutocomplete } from './search.js';
+import { setupPlaceAutocomplete, searchLocalPlaces, searchOnlinePlaces } from './search.js';
 
 /**
  * Tìm các trạm ngập nguy hiểm để định tuyến né tránh
@@ -188,10 +188,20 @@ export function datViTriMacDinh(showNotification) {
  */
 export function apDungOrigin(lat, lng, name) {
   state.route.originPos = { lat, lng, name };
+  state.route.isPickingOrigin = false;
+  const btnO = document.getElementById('btn-pick-origin');
+  if (btnO) btnO.classList.remove('active');
+
   const input = document.getElementById('route-origin-input');
   if (input) input.value = name || (lat.toFixed(4) + ', ' + lng.toFixed(4));
   const btnClearO = document.getElementById('btn-clear-origin');
   if (btnClearO) btnClearO.style.display = (input && input.value) ? 'flex' : 'none';
+
+  // Tắt vòng tròn độ chính xác GPS cũ nếu người dùng chọn địa điểm cụ thể
+  if (state.route.gpsAccuracyCircle && state.map) {
+    state.map.removeLayer(state.route.gpsAccuracyCircle);
+    state.route.gpsAccuracyCircle = null;
+  }
 
   if (!state.map) return;
 
@@ -202,7 +212,7 @@ export function apDungOrigin(lat, lng, name) {
               '<div class="route-pin-bubble bubble-origin">' +
                 '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>' +
               '</div>' +
-              '<div class="route-pin-label">Xuất phát</div>' +
+              '<div class="route-pin-label">' + esc(name ? name.substring(0, 16) : 'Xuất phát') + '</div>' +
             '</div>',
       iconSize: [60, 60],
       iconAnchor: [30, 20]
@@ -216,6 +226,16 @@ export function apDungOrigin(lat, lng, name) {
     });
   } else {
     state.route.originMarker.setLatLng([lat, lng]);
+    const labelEl = state.route.originMarker.getElement();
+    if (labelEl) {
+      const lbl = labelEl.querySelector('.route-pin-label');
+      if (lbl) lbl.textContent = name ? name.substring(0, 16) : 'Xuất phát';
+    }
+  }
+
+  // Nếu chưa có điểm đến, di chuyển tâm bản đồ tới vị trí xuất phát vừa chọn
+  if (!state.route.destPos && state.map) {
+    state.map.flyTo([lat, lng], 15, { duration: 0.6 });
   }
 }
 
@@ -386,6 +406,34 @@ export function xoaDuongDi() {
  * Tính toán tuyến đường né tránh các điểm ngập nước
  */
 export async function tinhDuongDi() {
+  const originInput = document.getElementById('route-origin-input');
+  if (originInput && originInput.value.trim() && (!state.route.originPos || state.route.originPos.name !== originInput.value.trim())) {
+    const q = originInput.value.trim();
+    const local = searchLocalPlaces(q);
+    if (local.length > 0) {
+      apDungOrigin(local[0].lat, local[0].lng, local[0].name);
+    } else {
+      const online = await searchOnlinePlaces(q);
+      if (online.length > 0) {
+        apDungOrigin(online[0].lat, online[0].lng, online[0].name);
+      }
+    }
+  }
+
+  const destInput = document.getElementById('route-dest-input');
+  if (destInput && destInput.value.trim() && (!state.route.destPos || state.route.destPos.name !== destInput.value.trim())) {
+    const q = destInput.value.trim();
+    const local = searchLocalPlaces(q);
+    if (local.length > 0) {
+      chonDiemDen(local[0].lat, local[0].lng, local[0].name);
+    } else {
+      const online = await searchOnlinePlaces(q);
+      if (online.length > 0) {
+        chonDiemDen(online[0].lat, online[0].lng, online[0].name);
+      }
+    }
+  }
+
   if (!state.route.originPos) {
     layViTriGPS(true);
     return;

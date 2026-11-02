@@ -93,15 +93,50 @@ export function removeVietnameseTones(str) {
  */
 export function searchLocalPlaces(query) {
   if (!query || query.trim().length < 2) return [];
-  const cleanQ = removeVietnameseTones(query);
-  const words = cleanQ.split(/\s+/).filter(Boolean);
+  const rawQ = query.trim();
 
-  return DANANG_PLACES.filter(place => {
+  // Tách số nhà/kiệt nếu người dùng nhập ví dụ "579 mai đă" hoặc "K12/4 Hoàng Diệu"
+  let houseNo = '';
+  let streetPart = rawQ;
+  const matchNum = rawQ.match(/^((?:k|kiệt|ngõ|hẻm)?\s*\d+[a-zA-Z]?(?:\/\d+)?)\s+(.*)/i);
+  if (matchNum) {
+    houseNo = matchNum[1].trim();
+    streetPart = matchNum[2].trim();
+  }
+
+  const cleanStreet = removeVietnameseTones(streetPart || rawQ);
+  const words = cleanStreet.split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+
+  const matched = [];
+  DANANG_PLACES.forEach(place => {
     const cleanName = removeVietnameseTones(place.name);
     const cleanSub = removeVietnameseTones(place.sub);
     const target = cleanName + ' ' + cleanSub;
-    return words.every(w => target.includes(w));
-  }).slice(0, 5);
+
+    // Phải khớp tất cả các từ khóa
+    const allMatch = words.every(w => target.includes(w));
+    if (allMatch) {
+      let score = 0;
+      if (cleanName.includes(cleanStreet)) score += 30;
+      words.forEach(w => {
+        if (cleanName.includes(w)) score += 10;
+      });
+
+      const displayName = houseNo ? (houseNo + ' ' + place.name) : place.name;
+      matched.push({
+        name: displayName,
+        sub: place.sub,
+        lat: place.lat,
+        lng: place.lng,
+        icon: place.icon || '📍',
+        score
+      });
+    }
+  });
+
+  matched.sort((a, b) => b.score - a.score);
+  return matched.slice(0, 5);
 }
 
 /**
@@ -191,10 +226,12 @@ export async function searchOnlinePlaces(query) {
 /**
  * Gộp kết quả tìm kiếm Local và Online, loại bỏ trùng lặp
  */
-export function mergeSearchResults(localList, onlineList) {
+export function mergeSearchResults(localList, onlineList, query = '') {
+  const cleanQ = removeVietnameseTones(query);
+  const qWords = cleanQ.split(/\s+/).filter(w => !/^\d+$/.test(w) && w.length >= 2);
+
   const merged = [...localList];
   onlineList.forEach(onlineItem => {
-    // Tránh trùng với địa điểm đã có trong Local
     const isDuplicate = merged.some(m => {
       const dLat = Math.abs(m.lat - onlineItem.lat);
       const dLng = Math.abs(m.lng - onlineItem.lng);
@@ -205,6 +242,21 @@ export function mergeSearchResults(localList, onlineList) {
       merged.push(onlineItem);
     }
   });
+
+  // Ưu tiên các địa danh mà tên có chứa từ khóa đường/phố người dùng đang tìm
+  if (qWords.length > 0) {
+    merged.sort((a, b) => {
+      const aName = removeVietnameseTones(a.name);
+      const bName = removeVietnameseTones(b.name);
+      let aScore = a.score || 0;
+      let bScore = b.score || 0;
+      qWords.forEach(w => {
+        if (aName.includes(w)) aScore += 15;
+        if (bName.includes(w)) bScore += 15;
+      });
+      return bScore - aScore;
+    });
+  }
 
   return merged.slice(0, 6);
 }
@@ -261,15 +313,20 @@ export function setupPlaceAutocomplete(inputEl, dropdownEl, onSelect) {
     dropdownEl.innerHTML = html;
     dropdownEl.style.display = 'block';
 
-    // Gắn sự kiện click cho từng mục
+    // Gắn sự kiện click & mousedown cho từng mục để đảm bảo phản hồi ngay lập tức
     Array.from(dropdownEl.querySelectorAll('.suggestion-item')).forEach(itemEl => {
-      itemEl.addEventListener('click', () => {
+      const handleSelect = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const idx = parseInt(itemEl.getAttribute('data-index'), 10);
         const selected = currentResults[idx];
         if (selected) {
           applySelection(selected);
         }
-      });
+      };
+
+      itemEl.addEventListener('mousedown', handleSelect);
+      itemEl.addEventListener('click', handleSelect);
     });
   }
 
@@ -303,7 +360,7 @@ export function setupPlaceAutocomplete(inputEl, dropdownEl, onSelect) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
       const onlineMatches = await searchOnlinePlaces(query);
-      const finalResults = mergeSearchResults(localMatches, onlineMatches);
+      const finalResults = mergeSearchResults(localMatches, onlineMatches, query);
       renderDropdown(finalResults, false);
     }, 280);
   });
