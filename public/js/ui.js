@@ -178,12 +178,17 @@ export function setupModals() {
         const modal = document.getElementById('about-modal');
         if (modal) modal.style.display = 'flex';
       } else if (target === 'route') {
+        const lvModal = document.getElementById('levels-modal');
+        const abModal = document.getElementById('about-modal');
+        if (lvModal) lvModal.style.display = 'none';
+        if (abModal) abModal.style.display = 'none';
         batTatBangTimDuong();
       } else if (target === 'main') {
         const lvModal = document.getElementById('levels-modal');
         const abModal = document.getElementById('about-modal');
         if (lvModal) lvModal.style.display = 'none';
         if (abModal) abModal.style.display = 'none';
+        dongBangTimDuong();
         document.querySelectorAll('.nav-link').forEach(nl => nl.classList.remove('active'));
         const mainLink = document.querySelector('.nav-link[data-nav="main"]');
         if (mainLink) mainLink.classList.add('active');

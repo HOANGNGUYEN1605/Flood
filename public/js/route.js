@@ -308,16 +308,26 @@ export function batTatChonDest() {
   }
 }
 
-export function batTatBangTimDuong() {
-  state.route.active = !state.route.active;
+export function batTatBangTimDuong(forceOpen = null) {
+  if (typeof forceOpen === 'boolean') {
+    state.route.active = forceOpen;
+  } else {
+    state.route.active = !state.route.active;
+  }
+
   const panel = document.getElementById('route-panel');
   const btn = document.getElementById('btn-toggle-route');
   const navLink = document.getElementById('nav-btn-route');
+  const mainLink = document.querySelector('.nav-link[data-nav="main"]');
 
   if (state.route.active) {
-    if (panel) panel.style.display = 'block';
+    if (panel) {
+      panel.style.display = 'block';
+      panel.scrollTop = 0;
+    }
     if (btn) btn.classList.add('active');
     if (navLink) navLink.classList.add('active');
+    if (mainLink) mainLink.classList.remove('active');
     capNhatTagXeTrenBangTimDuong();
     if (!state.route.originPos) {
       layViTriGPS(false);
@@ -334,9 +344,11 @@ export function dongBangTimDuong() {
   const panel = document.getElementById('route-panel');
   const btn = document.getElementById('btn-toggle-route');
   const navLink = document.getElementById('nav-btn-route');
+  const mainLink = document.querySelector('.nav-link[data-nav="main"]');
   if (panel) panel.style.display = 'none';
   if (btn) btn.classList.remove('active');
   if (navLink) navLink.classList.remove('active');
+  if (mainLink) mainLink.classList.add('active');
   const btnO = document.getElementById('btn-pick-origin');
   if (btnO) btnO.classList.remove('active');
   const btnD = document.getElementById('btn-pick-map');
@@ -669,13 +681,8 @@ export function xuLyLoTrinhFallback(hazards) {
  */
 export function initRouteUI() {
   const btnToggle = document.getElementById('btn-toggle-route');
-  if (btnToggle) btnToggle.addEventListener('click', batTatBangTimDuong);
-
-  const navRoute = document.getElementById('nav-btn-route');
-  if (navRoute) navRoute.addEventListener('click', e => {
-    e.preventDefault();
-    batTatBangTimDuong();
-  });
+  if (btnToggle) btnToggle.addEventListener('click', () => batTatBangTimDuong());
+  // Ghi chú: nav-btn-route đã được quản lý trong ui.js qua selector [data-nav="route"] để tránh double click
 
   const btnClose = document.getElementById('btn-close-route');
   if (btnClose) btnClose.addEventListener('click', dongBangTimDuong);
