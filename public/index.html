@@ -210,7 +210,11 @@
               <div class="route-input-bullet origin-bullet" title="Điểm xuất phát"></div>
               <div class="route-input-wrap">
                 <label class="route-input-label">Điểm xuất phát</label>
-                <input type="text" id="route-origin-input" class="route-input" placeholder="Nhập hoặc bấm trên bản đồ để chọn...">
+                <div class="route-input-inner">
+                  <input type="text" id="route-origin-input" class="route-input" placeholder="Nhập địa điểm hoặc bấm bản đồ..." autocomplete="off">
+                  <button type="button" class="route-clear-btn" id="btn-clear-origin" title="Xóa" tabindex="-1">✕</button>
+                </div>
+                <div id="origin-suggestions" class="suggestions-dropdown" style="display:none"></div>
               </div>
               <button class="route-icon-btn" id="btn-pick-origin" title="Bấm trên bản đồ để chọn điểm xuất phát">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -233,7 +237,11 @@
               <div class="route-input-bullet dest-bullet" title="Điểm đến"></div>
               <div class="route-input-wrap">
                 <label class="route-input-label">Điểm đến</label>
-                <input type="text" id="route-dest-input" class="route-input" placeholder="Bấm trên bản đồ hoặc chọn gợi ý bên dưới...">
+                <div class="route-input-inner">
+                  <input type="text" id="route-dest-input" class="route-input" placeholder="Nhập tên đường, địa danh hoặc bấm bản đồ..." autocomplete="off">
+                  <button type="button" class="route-clear-btn" id="btn-clear-dest" title="Xóa" tabindex="-1">✕</button>
+                </div>
+                <div id="dest-suggestions" class="suggestions-dropdown" style="display:none"></div>
               </div>
               <button class="route-icon-btn" id="btn-pick-map" title="Bấm trên bản đồ để chọn điểm đến">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>

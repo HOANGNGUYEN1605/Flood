@@ -6,6 +6,7 @@ import { state } from './state.js';
 import { esc, banner, haversineDistance, distancePointToSegment, parseStationName } from './utils.js';
 import { fetchIPLocation } from './api.js';
 import { selectStation } from './stations.js';
+import { setupPlaceAutocomplete } from './search.js';
 
 /**
  * Tìm các trạm ngập nguy hiểm để định tuyến né tránh
@@ -189,6 +190,8 @@ export function apDungOrigin(lat, lng, name) {
   state.route.originPos = { lat, lng, name };
   const input = document.getElementById('route-origin-input');
   if (input) input.value = name || (lat.toFixed(4) + ', ' + lng.toFixed(4));
+  const btnClearO = document.getElementById('btn-clear-origin');
+  if (btnClearO) btnClearO.style.display = (input && input.value) ? 'flex' : 'none';
 
   if (!state.map) return;
 
@@ -223,6 +226,8 @@ export function chonDiemDen(lat, lng, name) {
   state.route.destPos = { lat, lng, name };
   const input = document.getElementById('route-dest-input');
   if (input) input.value = name;
+  const btnClearD = document.getElementById('btn-clear-dest');
+  if (btnClearD) btnClearD.style.display = name ? 'flex' : 'none';
 
   if (!state.map) return;
 
@@ -356,6 +361,8 @@ export function xoaDuongDi() {
   state.route.destPos = null;
   const destInput = document.getElementById('route-dest-input');
   if (destInput) destInput.value = '';
+  const btnClearD = document.getElementById('btn-clear-dest');
+  if (btnClearD) btnClearD.style.display = 'none';
   const resultCard = document.getElementById('route-result');
   if (resultCard) resultCard.style.display = 'none';
   const loading = document.getElementById('route-loading');
@@ -711,5 +718,60 @@ export function initRouteUI() {
       const name = chip.getAttribute('data-name');
       chonDiemDen(lat, lng, name);
     });
+  }
+
+  // Khởi tạo autocomplete gợi ý địa điểm chuẩn Google Maps cho ô Điểm đến
+  const destInput = document.getElementById('route-dest-input');
+  const destDropdown = document.getElementById('dest-suggestions');
+  const btnClearDest = document.getElementById('btn-clear-dest');
+
+  if (destInput && destDropdown) {
+    setupPlaceAutocomplete(destInput, destDropdown, place => {
+      chonDiemDen(place.lat, place.lng, place.name);
+      if (btnClearDest) btnClearDest.style.display = 'flex';
+    });
+
+    destInput.addEventListener('input', () => {
+      if (btnClearDest) btnClearDest.style.display = destInput.value.trim() ? 'flex' : 'none';
+    });
+
+    if (btnClearDest) {
+      btnClearDest.addEventListener('click', () => {
+        destInput.value = '';
+        btnClearDest.style.display = 'none';
+        xoaDuongDi();
+        destInput.focus();
+      });
+    }
+  }
+
+  // Khởi tạo autocomplete gợi ý địa điểm cho ô Điểm xuất phát
+  const originInput = document.getElementById('route-origin-input');
+  const originDropdown = document.getElementById('origin-suggestions');
+  const btnClearOrigin = document.getElementById('btn-clear-origin');
+
+  if (originInput && originDropdown) {
+    setupPlaceAutocomplete(originInput, originDropdown, place => {
+      apDungOrigin(place.lat, place.lng, place.name);
+      if (btnClearOrigin) btnClearOrigin.style.display = 'flex';
+      if (state.route.destPos) tinhDuongDi();
+    });
+
+    originInput.addEventListener('input', () => {
+      if (btnClearOrigin) btnClearOrigin.style.display = originInput.value.trim() ? 'flex' : 'none';
+    });
+
+    if (btnClearOrigin) {
+      btnClearOrigin.addEventListener('click', () => {
+        originInput.value = '';
+        btnClearOrigin.style.display = 'none';
+        state.route.originPos = null;
+        if (state.route.originMarker && state.map) {
+          state.map.removeLayer(state.route.originMarker);
+          state.route.originMarker = null;
+        }
+        originInput.focus();
+      });
+    }
   }
 }
