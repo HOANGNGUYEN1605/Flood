@@ -4,6 +4,7 @@ const express = require('express');
 const config = require('./src/config');
 const db = require('./src/db');
 const connection = require('./src/connection');
+const mockFeeder = require('./src/mockFeeder');
 
 async function main() {
   if (!config.load()) { console.error('Cấu hình ban đầu không hợp lệ, dừng.'); process.exit(1); }
@@ -13,6 +14,12 @@ async function main() {
   await db.syncStations(config.get());
   config.watch((c) => db.syncStations(c).catch((e) => console.error('[sync]', e.message)));
   connection.start(5000);
+
+  // Tự động sinh dữ liệu ngập mô phỏng thực tế cho các trạm giả lập (TR02..TR08)
+  if (process.env.ENABLE_MOCK !== 'false') {
+    await mockFeeder.start(5000);
+    console.log('[mock-feeder] Đang chạy mô phỏng dữ liệu ngập thực tế cho các trạm giả lập Đà Nẵng.');
+  }
 
   const app = express();
   app.disable('x-powered-by');

@@ -2,7 +2,7 @@
   "tram": [
     {
       "ma_tram": "TR01",
-      "ten_vi_tri": "Trạm thật – mô hình bể nước (sửa theo vị trí đặt)",
+      "ten_vi_tri": "Trạm thật – Mô hình bể nước (Hải Châu)",
       "vi_do": 16.0678,
       "kinh_do": 108.2208,
       "khu_vuc": "Hải Châu",
@@ -11,21 +11,66 @@
     },
     {
       "ma_tram": "TR02",
-      "ten_vi_tri": "Trạm giả lập 1 – điểm ngập demo",
-      "vi_do": 16.064,
-      "kinh_do": 108.199,
+      "ten_vi_tri": "Hàm Nghi – Hùng Vương (Bờ hồ Thạc Gián)",
+      "vi_do": 16.0688,
+      "kinh_do": 108.212,
       "khu_vuc": "Thanh Khê",
-      "chieu_cao_lap": 50,
+      "chieu_cao_lap": 60,
       "khoa_api": "tr02demokey_change_me_0123456789"
     },
     {
       "ma_tram": "TR03",
-      "ten_vi_tri": "Trạm giả lập 2 – điểm ngập demo",
-      "vi_do": 16.072,
-      "kinh_do": 108.238,
-      "khu_vuc": "Sơn Trà",
+      "ten_vi_tri": "Nguyễn Văn Linh – Hoàng Diệu",
+      "vi_do": 16.0615,
+      "kinh_do": 108.217,
+      "khu_vuc": "Hải Châu",
       "chieu_cao_lap": 50,
       "khoa_api": "tr03demokey_change_me_0123456789"
+    },
+    {
+      "ma_tram": "TR04",
+      "ten_vi_tri": "Khu Khe Cạn – Đường Mẹ Suốt",
+      "vi_do": 16.0592,
+      "kinh_do": 108.1585,
+      "khu_vuc": "Liên Chiểu",
+      "chieu_cao_lap": 70,
+      "khoa_api": "tr04demokey_change_me_0123456789"
+    },
+    {
+      "ma_tram": "TR05",
+      "ten_vi_tri": "Tôn Đức Thắng – Trước Bến xe Trung tâm",
+      "vi_do": 16.0635,
+      "kinh_do": 108.172,
+      "khu_vuc": "Cẩm Lệ",
+      "chieu_cao_lap": 50,
+      "khoa_api": "tr05demokey_change_me_0123456789"
+    },
+    {
+      "ma_tram": "TR06",
+      "ten_vi_tri": "Trưng Nữ Vương – Chân cầu Trần Thị Lý",
+      "vi_do": 16.052,
+      "kinh_do": 108.2225,
+      "khu_vuc": "Hải Châu",
+      "chieu_cao_lap": 50,
+      "khoa_api": "tr06demokey_change_me_0123456789"
+    },
+    {
+      "ma_tram": "TR07",
+      "ten_vi_tri": "Lê Duẩn – Ngã tư Quang Trung",
+      "vi_do": 16.0745,
+      "kinh_do": 108.219,
+      "khu_vuc": "Hải Châu",
+      "chieu_cao_lap": 50,
+      "khoa_api": "tr07demokey_change_me_0123456789"
+    },
+    {
+      "ma_tram": "TR08",
+      "ten_vi_tri": "Như Nguyệt – Chân cầu Thuận Phước",
+      "vi_do": 16.0885,
+      "kinh_do": 108.2215,
+      "khu_vuc": "Hải Châu",
+      "chieu_cao_lap": 50,
+      "khoa_api": "tr08demokey_change_me_0123456789"
     }
   ],
   "loai_xe": [
