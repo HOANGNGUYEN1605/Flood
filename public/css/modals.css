@@ -576,3 +576,192 @@
   z-index: 6000;
   border-top: 2px solid #f59e0b;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   6. DANH SÁCH SỐ ĐIỆN THOẠI KHẨN CẤP (HOTLINE MODAL)
+   ══════════════════════════════════════════════════════════════════════════ */
+.hotline-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s ease;
+}
+
+.hotline-dialog {
+  background: #ffffff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  animation: hotlinePop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes hotlinePop {
+  from { opacity: 0; transform: scale(0.95) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.hotline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.hotline-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.hotline-close {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  color: #64748b;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.hotline-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.hotline-list {
+  padding: 10px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hotline-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.hotline-item:last-child {
+  border-bottom: none;
+}
+
+.hotline-item:hover,
+.hotline-item.active {
+  background: #f0f4f9;
+}
+
+.hotline-item:active {
+  transform: scale(0.99);
+}
+
+.hotline-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.hotline-icon {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: #e1f6f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0891b2;
+  flex-shrink: 0;
+}
+
+.hotline-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hotline-phone {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #a82525;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  margin-left: 12px;
+}
+
+/* Nút SĐT khẩn cấp trên thanh công cụ bản đồ */
+.map-hotline-btn {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12);
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.map-hotline-btn:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #f87171;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.2);
+}
+
+.weather-alert-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.weather-hotline-link {
+  color: #dc2626 !important;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-weight: 700 !important;
+  text-decoration: none;
+}
+
+.weather-hotline-link:hover {
+  background: #fee2e2;
+}

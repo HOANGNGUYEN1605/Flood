@@ -156,8 +156,17 @@ export function setupModals() {
     });
   }
 
+  // Hotline close button
+  const hotlineClose = document.getElementById('hotline-close');
+  if (hotlineClose) {
+    hotlineClose.addEventListener('click', () => {
+      const modal = document.getElementById('hotline-modal');
+      if (modal) modal.style.display = 'none';
+    });
+  }
+
   // Click outside to close modal overlays
-  ['levels-modal', 'about-modal'].forEach(id => {
+  ['levels-modal', 'about-modal', 'hotline-modal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('click', function (e) {
@@ -165,6 +174,15 @@ export function setupModals() {
       });
     }
   });
+
+  // Toggle nút Hotline trên top bar bản đồ
+  const btnToggleHotline = document.getElementById('btn-toggle-hotline');
+  if (btnToggleHotline) {
+    btnToggleHotline.addEventListener('click', () => {
+      const modal = document.getElementById('hotline-modal');
+      if (modal) modal.style.display = 'flex';
+    });
+  }
 
   // Navigation Links
   document.querySelectorAll('[data-nav]').forEach(el => {
@@ -177,17 +195,24 @@ export function setupModals() {
       } else if (target === 'about') {
         const modal = document.getElementById('about-modal');
         if (modal) modal.style.display = 'flex';
+      } else if (target === 'hotline') {
+        const modal = document.getElementById('hotline-modal');
+        if (modal) modal.style.display = 'flex';
       } else if (target === 'route') {
         const lvModal = document.getElementById('levels-modal');
         const abModal = document.getElementById('about-modal');
+        const hotModal = document.getElementById('hotline-modal');
         if (lvModal) lvModal.style.display = 'none';
         if (abModal) abModal.style.display = 'none';
+        if (hotModal) hotModal.style.display = 'none';
         batTatBangTimDuong();
       } else if (target === 'main') {
         const lvModal = document.getElementById('levels-modal');
         const abModal = document.getElementById('about-modal');
+        const hotModal = document.getElementById('hotline-modal');
         if (lvModal) lvModal.style.display = 'none';
         if (abModal) abModal.style.display = 'none';
+        if (hotModal) hotModal.style.display = 'none';
         dongBangTimDuong();
         document.querySelectorAll('.nav-link').forEach(nl => nl.classList.remove('active'));
         const mainLink = document.querySelector('.nav-link[data-nav="main"]');
@@ -227,6 +252,8 @@ export function setupModals() {
       if (lvModal) lvModal.style.display = 'none';
       const abModal = document.getElementById('about-modal');
       if (abModal) abModal.style.display = 'none';
+      const hotModal = document.getElementById('hotline-modal');
+      if (hotModal) hotModal.style.display = 'none';
       const confModal = document.getElementById('vehicle-confirm');
       if (confModal) confModal.style.display = 'none';
       state.activeStationId = null;
