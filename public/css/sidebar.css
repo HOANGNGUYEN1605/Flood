@@ -72,6 +72,8 @@
 }
 
 .v-pill {
+  white-space: nowrap;
+  flex-shrink: 0;
   padding: 4px 10px;
   border-radius: var(--radius-full);
   font-size: 0.78rem;

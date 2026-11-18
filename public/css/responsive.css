@@ -13,16 +13,236 @@
 }
 
 @media (max-width: 768px) {
-  .content { flex-direction: column; }
-  .sidebar { width: 100% !important; max-width: none; max-height: 48vh; border-right: none; border-bottom: 1px solid var(--gray-200); }
-  .resize-handle { display: none; }
-  .map-section { min-height: 52vh; }
-  .navbar-links { display: none; }
-  .detail-drawer { width: 100% !important; max-width: 100vw; }
+  .content {
+    flex-direction: column;
+    height: calc(100vh - 56px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Chế độ xem Bản đồ trên mobile (Mặc định) */
+  #workspace:not([data-mobile-view="list"]) .sidebar {
+    display: none !important;
+  }
+  #workspace:not([data-mobile-view="list"]) .map-section {
+    display: flex !important;
+    flex: 1;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* Chế độ xem Danh sách trạm trên mobile */
+  #workspace[data-mobile-view="list"] .sidebar {
+    display: flex !important;
+    flex: 1;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    max-height: none !important;
+    overflow-y: auto;
+    border-right: none;
+    padding-bottom: 70px;
+  }
+  #workspace[data-mobile-view="list"] .map-section {
+    display: none !important;
+  }
+
+  .resize-handle {
+    display: none !important;
+  }
+
+  .navbar-links {
+    display: none !important;
+  }
+
+  /* Header sidebar trên mobile: căn dọc gọn gàng, nút xe không bị méo */
+  .sidebar-header {
+    padding: 14px 16px 8px !important;
+  }
+
+  .sidebar-title-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .sidebar-title {
+    font-size: 1.25rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .sidebar-meta {
+    width: 100% !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+
+  .meta-label {
+    font-size: 0.72rem !important;
+    color: var(--gray-500) !important;
+  }
+
+  .vehicle-pills {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+    padding: 2px 0 !important;
+  }
+
+  .vehicle-pills::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .v-pill {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding: 7px 14px !important;
+    font-size: 0.82rem !important;
+    min-height: 36px !important;
+    border-radius: 9999px !important;
+  }
+
+  /* Thẻ lưu ý thời tiết trên mobile */
+  .weather-alert {
+    margin: 6px 14px 8px !important;
+    padding: 10px 12px !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .weather-alert-actions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    margin-top: 2px !important;
+  }
+
+  .weather-link {
+    font-size: 0.76rem !important;
+  }
+
+  /* Lọc khu vực trên mobile */
+  .area-filter-bar {
+    padding: 0 14px 6px !important;
+    gap: 8px !important;
+  }
+
+  .area-pills {
+    gap: 6px !important;
+    scrollbar-width: none !important;
+  }
+
+  .area-pills::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .area-pill {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding: 5px 12px !important;
+    font-size: 0.78rem !important;
+  }
+
+  /* Sắp xếp trên mobile */
+  .sort-bar {
+    padding: 8px 14px !important;
+  }
+
+  .sort-title {
+    font-size: 0.78rem !important;
+  }
+
+  /* Danh sách trạm */
+  .station-list {
+    padding: 8px 14px 80px !important;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* Thanh trạng thái dưới cùng */
+  .status-bar {
+    padding: 8px 14px !important;
+    font-size: 0.74rem !important;
+    margin-bottom: 56px;
+  }
+
+  /* Thanh công cụ bản đồ trên mobile */
+  .map-top-bar {
+    top: 10px !important;
+    left: 10px !important;
+    right: 10px !important;
+  }
+
+  .map-tag {
+    display: none !important; /* Ẩn thẻ M03 trên mobile để chống tràn đè nút */
+  }
+
+  .map-top-tools {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 0 !important;
+  }
+
+  .map-top-tools::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .map-route-btn {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding: 8px 12px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .map-hotline-btn {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding: 8px 11px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .map-tool-btn {
+    flex-shrink: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  /* Chú giải bản đồ trên mobile */
+  .legend-box {
+    bottom: 74px !important;
+    right: 10px !important;
+    max-width: 150px !important;
+  }
+
+  .floating-controls {
+    bottom: 74px !important;
+    left: 10px !important;
+  }
+
+  /* Drawer chi tiết trạm trên mobile */
+  .detail-drawer {
+    width: 100% !important;
+    max-width: 100vw !important;
+    top: 56px !important;
+    bottom: 0 !important;
+    z-index: 1500 !important;
+  }
+
   .onboarding-options { flex-direction: column; }
   .onboarding-card { padding: 32px 20px; }
   .modal-panel { width: 100%; }
-  
+
   .route-panel {
     top: 54px;
     left: 10px;
@@ -32,11 +252,49 @@
     max-height: calc(100% - 70px);
     padding: 14px;
   }
+
+  /* Thanh chuyển đổi tab nổi trên mobile */
+  .mobile-view-tabs {
+    position: fixed;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    display: flex;
+    background: rgba(15, 30, 54, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 4px;
+    border-radius: 999px;
+    box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.16);
+    gap: 4px;
+  }
+
+  .mobile-view-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+  }
+
+  .mobile-view-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(37, 99, 235, 0.45);
+  }
 }
 
-
 /* ======================================================================
-   8. UI POLISH v2 - MODERN ENHANCEMENTS (appended)
+   8. UI POLISH v2 - MODERN ENHANCEMENTS
    ====================================================================== */
 
 /* Live pulse for status dot */

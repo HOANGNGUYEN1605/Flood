@@ -272,6 +272,7 @@ export function setupModals() {
 
   // Kéo thả thay đổi độ rộng sidebar
   setupResize();
+  setupMobileTabs();
 }
 
 /**
@@ -319,4 +320,35 @@ export function setupResize() {
     sidebar.style.width = '440px';
     if (state.map) state.map.invalidateSize();
   });
+}
+
+
+/**
+ * Quản lý chuyển đổi chế độ xem trên Mobile (Bản đồ / Danh sách)
+ */
+export function setupMobileTabs() {
+  const workspace = document.getElementById('workspace');
+  const btnMap = document.getElementById('btn-view-map');
+  const btnList = document.getElementById('btn-view-list');
+  if (!workspace || !btnMap || !btnList) return;
+
+  function setMobileView(view) {
+    workspace.setAttribute('data-mobile-view', view);
+    if (view === 'map') {
+      btnMap.classList.add('active');
+      btnList.classList.remove('active');
+      if (state.map) {
+        setTimeout(() => state.map.invalidateSize(), 150);
+      }
+    } else {
+      btnList.classList.add('active');
+      btnMap.classList.remove('active');
+    }
+  }
+
+  btnMap.addEventListener('click', () => setMobileView('map'));
+  btnList.addEventListener('click', () => setMobileView('list'));
+
+  window.__switchToMapView = () => setMobileView('map');
+  window.__switchToList = () => setMobileView('list');
 }

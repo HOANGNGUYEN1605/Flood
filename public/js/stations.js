@@ -131,6 +131,11 @@ export function renderStationsList(du) {
 export function selectStation(t, du) {
   state.activeStationId = t.ma_tram;
 
+  // Trên màn hình mobile, tự động chuyển sang tab bản đồ để xem vị trí trạm
+  if (typeof window.__switchToMapView === 'function' && window.innerWidth <= 768) {
+    window.__switchToMapView();
+  }
+
   // Highlight card
   Array.from(document.querySelectorAll('.station-card')).forEach(c => {
     c.classList.toggle('active-selected', c.getAttribute('data-ma') === t.ma_tram);
