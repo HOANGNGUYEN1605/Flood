@@ -8,10 +8,17 @@ import { esc } from './utils.js';
 import { renderVehiclePills, renderThresholdTable } from './stations.js';
 import { capNhatTagXeTrenBangTimDuong, batTatBangTimDuong, dongBangTimDuong } from './route.js';
 
+let savedOnStartCallback = null;
+
 /**
  * Màn hình Onboarding M01 chọn loại phương tiện
  */
 export function dungOnboarding(onStart) {
+  if (typeof onStart === 'function') {
+    savedOnStartCallback = onStart;
+  }
+  const cb = onStart || savedOnStartCallback;
+
   const box = document.getElementById('onboarding-options');
   const btn = document.getElementById('onboarding-btn');
   if (!box || !btn || !state.cauHinh) return;
@@ -49,7 +56,7 @@ export function dungOnboarding(onStart) {
     if (onboardingEl) onboardingEl.style.display = 'none';
     if (appEl) appEl.style.display = 'flex';
 
-    renderVehiclePills(xe => moXacNhanDoiXe(xe, onStart));
+    renderVehiclePills(xe => moXacNhanDoiXe(xe, cb));
     renderThresholdTable();
     capNhatTagXeTrenBangTimDuong();
 
@@ -57,8 +64,8 @@ export function dungOnboarding(onStart) {
       setTimeout(() => state.map.invalidateSize(), 150);
     }
 
-    if (typeof onStart === 'function') {
-      onStart();
+    if (typeof cb === 'function') {
+      cb();
     }
   };
 
@@ -229,7 +236,7 @@ export function setupModals() {
       const appEl = document.getElementById('app');
       if (onboardingEl) onboardingEl.style.display = 'flex';
       if (appEl) appEl.style.display = 'none';
-      dungOnboarding();
+      dungOnboarding(savedOnStartCallback);
     });
   }
 

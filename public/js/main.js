@@ -18,7 +18,8 @@ import {
   chonDiemDen,
   tinhDuongDi,
   batTatChonOrigin,
-  batTatChonDest
+  batTatChonDest,
+  capNhatTagXeTrenBangTimDuong
 } from './route.js';
 import { dungOnboarding, moXacNhanDoiXe, setupModals } from './ui.js';
 
@@ -96,7 +97,7 @@ async function khoiTao() {
     state.cauHinh = c;
 
     // Kiểm tra tính hợp lệ của loại xe đã lưu trong cache
-    if (!c.loai_xe.some(x => x.loai_xe === state.loaiXe)) {
+    if (state.loaiXe && !c.loai_xe.some(x => x.loai_xe === state.loaiXe)) {
       state.loaiXe = null;
     }
 
@@ -106,15 +107,30 @@ async function khoiTao() {
       tai();
     });
 
-    // Mở màn hình onboarding để người dùng chọn/xác nhận phương tiện
     const onboardingEl = document.getElementById('onboarding');
     const appEl = document.getElementById('app');
-    if (onboardingEl) onboardingEl.style.display = 'flex';
-    if (appEl) appEl.style.display = 'none';
 
-    dungOnboarding(() => {
+    // Nếu đã chọn phương tiện trước đó (lưu trong phiên/localStorage):
+    // Tự động mặc định dùng phương tiện đó và vào thẳng ứng dụng
+    if (state.loaiXe) {
+      if (onboardingEl) onboardingEl.style.display = 'none';
+      if (appEl) appEl.style.display = 'flex';
+
+      renderVehiclePills(xe => moXacNhanDoiXe(xe, tai));
+      capNhatTagXeTrenBangTimDuong();
+      if (state.map) {
+        setTimeout(() => state.map.invalidateSize(), 150);
+      }
       tai();
-    });
+    } else {
+      // Lần đầu vào web chưa chọn: hiển thị onboarding để chọn 1 lần duy nhất
+      if (onboardingEl) onboardingEl.style.display = 'flex';
+      if (appEl) appEl.style.display = 'none';
+
+      dungOnboarding(() => {
+        tai();
+      });
+    }
   } catch (err) {
     banner(true, 'Không tải được cấu hình từ máy chủ. Đang thử lại…');
     setTimeout(khoiTaoLai, 3000);
@@ -128,7 +144,17 @@ async function khoiTaoLai() {
   try {
     const c = await fetchCauHinh();
     state.cauHinh = c;
-    renderVehiclePills(xe => moXacNhanDoiXe(xe, tai));
+
+    const onboardingEl = document.getElementById('onboarding');
+    const appEl = document.getElementById('app');
+
+    if (state.loaiXe) {
+      if (onboardingEl) onboardingEl.style.display = 'none';
+      if (appEl) appEl.style.display = 'flex';
+      renderVehiclePills(xe => moXacNhanDoiXe(xe, tai));
+      capNhatTagXeTrenBangTimDuong();
+    }
+
     renderAreaPills(kv => {
       state.khuVuc = kv;
       tai();
