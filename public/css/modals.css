@@ -765,3 +765,31 @@
 .weather-hotline-link:hover {
   background: #fee2e2;
 }
+
+/* Danh sách mục tiêu trong modal Giới thiệu */
+.about-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.about-list li {
+  position: relative;
+  padding-left: 20px;
+  font-size: 0.9rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+.about-list li::before {
+  content: "•";
+  position: absolute;
+  left: 4px;
+  color: var(--primary);
+  font-size: 1.2rem;
+  line-height: 1;
+  top: 1px;
+}
