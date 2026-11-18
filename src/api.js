@@ -52,7 +52,7 @@ router.get('/tram', async (req, res, next) => {
       else if (xe && cuoi) muc = mucCanhBao(cuoi.muc_nuoc, xe.nguong_T, false);
 
       // FR-12: Tính xu hướng so với 5 phút trước (hoặc bản ghi gần mốc 5p nhất)
-      let xuHuong = 'Ổn định';
+      let xuHuong = 'Không đổi';
       let chenhLech5p = 0;
       if (cuoi) {
         const banGhi5p = await BanGhi.findOne({
@@ -64,7 +64,7 @@ router.get('/tram', async (req, res, next) => {
           chenhLech5p = Math.round((cuoi.muc_nuoc - banGhi5p.muc_nuoc) * 10) / 10;
           if (chenhLech5p >= 0.5) xuHuong = 'Đang lên';
           else if (chenhLech5p <= -0.5) xuHuong = 'Đang rút';
-          else xuHuong = 'Ổn định';
+          else xuHuong = 'Không đổi';
         }
       }
 
@@ -107,15 +107,35 @@ router.get('/tram/:ma_tram/lich-su', async (req, res, next) => {
     const hopLe = cfg.tram.some((t) => t.ma_tram === ma_tram);
     if (!hopLe) return res.status(404).json({ loi: 'Không tìm thấy trạm' });
 
-    // Lấy tối đa 40 bản ghi gần nhất (trong vòng 1–2 giờ)
-    const ds = await BanGhi.find({ ma_tram })
-      .sort({ thoi_diem_do: -1 })
-      .limit(40)
+    // Bản ghi trong ?phut= phút gần nhất (mặc định 30, giới hạn 5 – 120), rút gọn đều còn ≤ 60 điểm; không có thì 40 bản ghi gần nhất
+    let phut = parseInt(req.query.phut, 10);
+    if (Number.isNaN(phut) || phut < 5) phut = 30;
+    if (phut > 120) phut = 120;
+
+    const mocThoiGian = new Date(Date.now() - phut * 60 * 1000);
+    let ds = await BanGhi.find({ ma_tram, thoi_diem_do: { $gte: mocThoiGian } })
+      .sort({ thoi_diem_do: 1 })
       .select('muc_nuoc thoi_diem_do -_id')
       .lean();
 
-    // Sắp xếp tăng dần theo thời gian để vẽ biểu đồ từ trái sang phải
-    ds.reverse();
+    if (!ds || ds.length === 0) {
+      ds = await BanGhi.find({ ma_tram })
+        .sort({ thoi_diem_do: -1 })
+        .limit(40)
+        .select('muc_nuoc thoi_diem_do -_id')
+        .lean();
+      ds.reverse();
+    } else if (ds.length > 60) {
+      const n = ds.length;
+      const target = 60;
+      const step = (n - 1) / (target - 1);
+      const rutGon = [];
+      for (let i = 0; i < target; i++) {
+        const idx = Math.round(i * step);
+        rutGon.push(ds[idx]);
+      }
+      ds = rutGon;
+    }
 
     res.set('Cache-Control', 'no-store');
     res.json({

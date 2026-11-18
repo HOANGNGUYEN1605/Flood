@@ -19,15 +19,17 @@ const cfgPath = path.join(__dirname, '..', 'config.json');
 const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
 const tr01 = cfg.tram.find(t => t.ma_tram === 'TR01') || {
   ma_tram: 'TR01',
-  khoa_api: 'tr01demokey_change_me_0123456789'
+  khoa_api: 'tr01demokey_change_me_0123456789',
+  chieu_cao_lap: 52
 };
 
 const serverUrl = (process.argv[3] || process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, '') + '/api/ban-ghi';
 
 async function guiBanGhiTR01(mucNuoc) {
   const val = parseFloat(mucNuoc);
-  if (isNaN(val) || val < 0 || val > 55) {
-    console.log(`[Lỗi] Mực nước không hợp lệ: "${mucNuoc}". Cần nằm trong khoảng 0 đến 55 cm.`);
+  const maxH = tr01.chieu_cao_lap;
+  if (isNaN(val) || val < 0 || val > maxH) {
+    console.log(`[Lỗi] Mực nước không hợp lệ: "${mucNuoc}". Cần nằm trong khoảng 0 đến ${maxH} cm.`);
     return;
   }
 

@@ -18,7 +18,7 @@ const t0 = Date.now();
 function tinhMucNuocKichBan(maTram, s) {
   switch (maTram) {
     // TR02: Hàm Nghi – Hùng Vương (Bờ hồ Thạc Gián, Thanh Khê)
-    // Tình huống: Mức KHẨN CẤP (36 - 45 cm), dập dềnh sóng nhẹ
+    // Tình huống: Mức KHẨN CẤP (dao động 34 – 42 cm kèm biên độ nhiễu ±0,6 cm), dập dềnh sóng nhẹ
     case 'TR02': {
       const cycle = s % 600;
       const base = 38 + 4 * Math.sin(cycle / 50);
@@ -27,7 +27,7 @@ function tinhMucNuocKichBan(maTram, s) {
     }
 
     // TR03: Nguyễn Văn Linh – Hoàng Diệu (Hải Châu)
-    // Tình huống: Mức NGUY HIỂM (21 - 28 cm), dao động theo chu kỳ máy bơm
+    // Tình huống: Mức NGUY HIỂM (dao động 21 – 27 cm kèm biên độ nhiễu ±0,5 cm), dao động theo chu kỳ máy bơm
     case 'TR03': {
       const cycle = s % 480;
       const base = 24 + 3 * Math.cos(cycle / 40);
@@ -36,17 +36,17 @@ function tinhMucNuocKichBan(maTram, s) {
     }
 
     // TR04: Khu Khe Cạn – Đường Mẹ Suốt (Liên Chiểu)
-    // Tình huống: NƯỚC DÂNG NHANH (+4cm/phút kích hoạt cờ dâng nhanh) → ĐỈNH KHẨN CẤP (46 - 52 cm) → rút chậm
+    // Tình huống: NƯỚC DÂNG NHANH (0,16 cm/giây ≈ 9,6 cm/phút kích hoạt cờ dâng nhanh FR-17) → ĐỈNH KHẨN CẤP (45 – 49 cm kèm biên độ nhiễu ±0,4 cm) → rút chậm
     case 'TR04': {
       const cycle = s % 600;
       let val = 12;
       if (cycle < 60) {
         val = 12 + cycle * 0.1;
       } else if (cycle < 240) {
-        // Tăng vọt +4.5 cm/phút: kích hoạt cờ dâng nhanh FR-17
+        // Tăng vọt 0,16 cm/giây ≈ 9,6 cm/phút: kích hoạt cờ dâng nhanh FR-17
         val = 18 + (cycle - 60) * 0.16;
       } else if (cycle < 420) {
-        // Đỉnh ngập sâu 46 - 50 cm
+        // Đỉnh ngập sâu 45 - 49 cm
         val = 47 + 2 * Math.sin(cycle / 25);
       } else {
         // Rút dần về 15cm
@@ -57,7 +57,7 @@ function tinhMucNuocKichBan(maTram, s) {
     }
 
     // TR05: Tôn Đức Thắng – Trước Bến xe Trung tâm (Cẩm Lệ)
-    // Tình huống: Mức CẢNH BÁO → NGUY HIỂM (16 - 24 cm)
+    // Tình huống: Mức CẢNH BÁO → NGUY HIỂM (15,5 – 22,5 cm kèm biên độ nhiễu ±0,5 cm)
     case 'TR05': {
       const cycle = s % 360;
       const base = 19 + 3.5 * Math.sin(cycle / 30);
@@ -66,7 +66,7 @@ function tinhMucNuocKichBan(maTram, s) {
     }
 
     // TR06: Trưng Nữ Vương – Chân cầu Trần Thị Lý (Hải Châu)
-    // Tình huống: Mức CẢNH BÁO (12 - 16 cm, cảnh báo xe máy, ô tô an toàn hơn)
+    // Tình huống: Mức CẢNH BÁO (12,2 – 15,8 cm kèm biên độ nhiễu ±0,3 cm, cảnh báo xe máy, ô tô an toàn hơn)
     case 'TR06': {
       const cycle = s % 300;
       const base = 14 + 1.8 * Math.sin(cycle / 35);
@@ -75,7 +75,7 @@ function tinhMucNuocKichBan(maTram, s) {
     }
 
     // TR07: Lê Duẩn – Ngã tư Quang Trung (Hải Châu)
-    // Tình huống: Mức BÌNH THƯỜNG (5 - 9 cm, ngập nhẹ lưu thông bình thường)
+    // Tình huống: Mức BÌNH THƯỜNG (5,0 – 8,0 cm kèm biên độ nhiễu ±0,25 cm, ngập nhẹ lưu thông bình thường)
     case 'TR07': {
       const cycle = s % 240;
       const base = 6.5 + 1.5 * Math.cos(cycle / 30);
@@ -84,7 +84,7 @@ function tinhMucNuocKichBan(maTram, s) {
     }
 
     // TR08: Như Nguyệt – Chân cầu Thuận Phước (Hải Châu)
-    // Tình huống: MẤT KẾT NỐI (chu kỳ 5 phút: 3 phút gửi bình thường 16-20cm, 2 phút ngắt truyền)
+    // Tình huống: MẤT KẾT NỐI (chu kỳ 360 giây, ngừng giây 150 – 300 kích hoạt Mất kết nối theo BRULE-04, phát 16 – 20 cm kèm biên độ nhiễu ±0,4 cm)
     case 'TR08': {
       const cycle = s % 360;
       // Ngắt gửi ở khoảng giây 150 đến 300 (> 60s để kích hoạt Mất kết nối theo BRULE-04)

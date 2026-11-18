@@ -41,8 +41,9 @@ export async function taiVaVeBieuDo(maTram, nguongT) {
     const padL = 25;
     const padR = 15;
 
-    // Tìm Max Y để tính tỉ lệ (ít nhất là 35 hoặc ngưỡng khẩn cấp + 5)
-    let maxVal = Math.max(35, (nguongT || 20) + 12);
+    // Tìm Max Y để tính tỉ lệ: trục Y tối đa max(35, T + 12) hoặc 35 nếu chưa chọn xe
+    const hasVehicle = typeof nguongT === 'number' && !isNaN(nguongT);
+    let maxVal = hasVehicle ? Math.max(35, nguongT + 12) : 35;
     data.forEach(d => {
       if (typeof d.muc_nuoc === 'number') maxVal = Math.max(maxVal, d.muc_nuoc + 5);
     });
@@ -56,10 +57,6 @@ export async function taiVaVeBieuDo(maTram, nguongT) {
       if (data.length <= 1) return (padL + W - padR) / 2;
       return padL + (i / (data.length - 1)) * (W - padL - padR);
     };
-
-    // Tọa độ đường ngưỡng
-    const yKhancap = getY((nguongT || 20) + 10);
-    const yCanhbao = getY((nguongT || 20) - 10);
 
     // Tạo path line & area
     const points = data.map((d, i) => {
@@ -81,15 +78,22 @@ export async function taiVaVeBieuDo(maTram, nguongT) {
 
       // Đường trục cơ sở (0 cm)
       '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="#e2e8f0" stroke-width="1"/>' +
-      '<text x="' + (padL - 4) + '" y="' + (H - padB + 3) + '" font-size="9" fill="#94a3b8" text-anchor="end">0</text>' +
+      '<text x="' + (padL - 4) + '" y="' + (H - padB + 3) + '" font-size="9" fill="#94a3b8" text-anchor="end">0</text>';
 
-      // Đường ngưỡng cảnh báo
-      '<line x1="' + padL + '" y1="' + yCanhbao + '" x2="' + (W - padR) + '" y2="' + yCanhbao + '" stroke="#eab308" stroke-dasharray="3,3" stroke-width="1" opacity="0.6"/>' +
+    // Chỉ vẽ vạch ngưỡng khi đã chọn xe (T != null)
+    if (hasVehicle) {
+      const yKhancap = getY(nguongT + 10);
+      const yCanhbao = getY(nguongT - 10);
 
-      // Đường ngưỡng khẩn cấp
-      '<line x1="' + padL + '" y1="' + yKhancap + '" x2="' + (W - padR) + '" y2="' + yKhancap + '" stroke="#dc2626" stroke-dasharray="3,3" stroke-width="1.2" opacity="0.8"/>' +
-      '<text x="' + (padL - 4) + '" y="' + (yKhancap + 3) + '" font-size="9" fill="#dc2626" font-weight="700" text-anchor="end">' + ((nguongT || 20) + 10) + '</text>' +
+      svgHtml +=
+        // Đường ngưỡng cảnh báo
+        '<line x1="' + padL + '" y1="' + yCanhbao + '" x2="' + (W - padR) + '" y2="' + yCanhbao + '" stroke="#eab308" stroke-dasharray="3,3" stroke-width="1" opacity="0.6"/>' +
+        // Đường ngưỡng khẩn cấp
+        '<line x1="' + padL + '" y1="' + yKhancap + '" x2="' + (W - padR) + '" y2="' + yKhancap + '" stroke="#dc2626" stroke-dasharray="3,3" stroke-width="1.2" opacity="0.8"/>' +
+        '<text x="' + (padL - 4) + '" y="' + (yKhancap + 3) + '" font-size="9" fill="#dc2626" font-weight="700" text-anchor="end">' + (nguongT + 10) + '</text>';
+    }
 
+    svgHtml +=
       // Vùng fill & đường line mực nước
       '<path d="' + pathArea + '" fill="url(#chartGrad)"/>' +
       '<path d="' + pathLine + '" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';

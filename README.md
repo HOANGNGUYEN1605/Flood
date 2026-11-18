@@ -57,6 +57,7 @@ curl -X POST http://localhost:3000/api/ban-ghi \
 | Endpoint | Mô tả |
 |---|---|
 | `GET /api/tram?loai_xe=XM\|OT_THAP\|OT_CAO` | Danh sách trạm, mức cảnh báo theo loại xe, cờ dâng nhanh (trạm có cờ lên đầu). Không truyền `loai_xe` thì `muc_canh_bao = null` |
+| `GET /api/tram/:ma_tram/lich-su?phut=30` | Lịch sử mực nước của trạm trong ?phut= phút gần nhất (mặc định 30, từ 5–120 phút), rút gọn tối đa 60 điểm để vẽ biểu đồ |
 | `GET /api/cau-hinh` | Chu kỳ làm mới, danh sách loại xe |
 | `GET /api/health` | Kiểm tra máy chủ và CSDL |
 

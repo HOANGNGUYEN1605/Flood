@@ -46,13 +46,13 @@ export function renderStationsList(du) {
 
     // FR-12: Xu hướng nước so với 5 phút trước
     let trendHtml = '';
-    const trendText = t.xu_huong || 'Ổn định';
+    const trendText = t.xu_huong || 'Không đổi';
     if (trendText === 'Đang lên' || trendText === 'Đang dâng') {
       trendHtml = '<span class="card-trend trend-up">↗ Đang lên</span>';
     } else if (trendText === 'Đang rút') {
       trendHtml = '<span class="card-trend trend-down">↘ Đang rút</span>';
     } else {
-      trendHtml = '<span class="card-trend trend-stable">→ Ổn định</span>';
+      trendHtml = '<span class="card-trend trend-stable">→ Không đổi</span>';
     }
 
     const tg = t.thoi_diem_do
@@ -166,8 +166,8 @@ export function renderDrawerContent(t, du) {
   const msg = ALERT_MSG[nhan] || '';
 
   // Chi tiết loại xe & Ngưỡng
-  let xeLabel = 'xe của bạn';
-  let T = 20;
+  let xeLabel = null;
+  let T = null;
   if (state.loaiXe && state.cauHinh) {
     const xeInfo = state.cauHinh.loai_xe.find(x => x.loai_xe === state.loaiXe);
     if (xeInfo) {
@@ -182,6 +182,8 @@ export function renderDrawerContent(t, du) {
     calloutMsg = 'Chưa nhận được dữ liệu mới từ trạm đo. Không thể đánh giá mức rủi ro hiện tại.';
   } else if (t.muc_nuoc == null) {
     calloutMsg = 'Trạm chưa có dữ liệu quan trắc mực nước.';
+  } else if (T == null) {
+    calloutMsg = 'Mực nước ' + Math.round(t.muc_nuoc) + ' cm. Vui lòng chọn loại xe ở thanh phía trên để xem mức cảnh báo rủi ro.';
   } else if (t.muc_nuoc >= T + 10) {
     const vuot = Math.round(t.muc_nuoc - (T + 10));
     calloutMsg = 'Mực nước ' + Math.round(t.muc_nuoc) + ' cm. Đã vượt ngưỡng khẩn cấp của ' + xeLabel + ' ' + (vuot > 0 ? vuot + ' cm' : '') + '. Tuyệt đối không đi qua.';
@@ -203,7 +205,7 @@ export function renderDrawerContent(t, du) {
   const pinColor = MAU[nhan] || '#94a3b8';
 
   // FR-12: Xu hướng 5 phút
-  const trendText = t.xu_huong || 'Ổn định';
+  const trendText = t.xu_huong || 'Không đổi';
   const trendSub = (typeof t.chenh_lech_5p === 'number' && t.chenh_lech_5p !== 0)
     ? ' (' + (t.chenh_lech_5p > 0 ? '+' : '') + t.chenh_lech_5p + ' cm so với 5p trước)'
     : ' (so với 5p trước)';
@@ -229,7 +231,7 @@ export function renderDrawerContent(t, du) {
     '<div class="drawer-alert-card alert-' + lop + '">' +
       '<div class="alert-card-top">' +
         '<span class="alert-badge-capsule">' + (BADGE_ICON[lop] || '') + ' ' + esc(nhan) + '</span>' +
-        '<span>Đối với ' + esc(xeLabel) + '</span>' +
+        '<span>' + (xeLabel ? 'Đối với ' + esc(xeLabel) : 'Chưa chọn loại xe') + '</span>' +
       '</div>' +
       '<div class="alert-card-headline">' + esc(msg) + '</div>' +
     '</div>' +
@@ -267,11 +269,11 @@ export function renderDrawerContent(t, du) {
       '<div class="chart-header">' +
         '<div class="chart-title">' +
           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' +
-          'Biến thiên mực nước' +
+          'Biến thiên mực nước (30 phút gần nhất)' +
         '</div>' +
         '<div class="chart-legend">' +
           '<span><span class="chart-legend-dot" style="background:#2563eb"></span> Mực nước</span>' +
-          '<span><span class="chart-legend-dot" style="background:#dc2626"></span> Khẩn cấp (' + (T + 10) + 'cm)</span>' +
+          (T != null ? '<span><span class="chart-legend-dot" style="background:#dc2626"></span> Khẩn cấp (' + (T + 10) + 'cm)</span>' : '') +
         '</div>' +
       '</div>' +
       '<div id="chart-mount" class="chart-container">' +
@@ -300,12 +302,12 @@ export function renderDrawerContent(t, du) {
       '<div class="status-row">' +
         '<span>Đèn cảnh báo tại trạm</span>' +
         '<span class="status-row-val">' +
-          (t.muc_nuoc != null && t.muc_nuoc >= 15 ? '<span style="color:#dc2626">● Đang sáng</span>' : '<span style="color:#94a3b8">○ Tắt</span>') +
+          (t.muc_nuoc != null && t.muc_nuoc >= 15 ? '<span style="color:#dc2626">● Đang sáng (ước tính, H ≥ 15 cm)</span>' : '<span style="color:#94a3b8">○ Tắt (ước tính)</span>') +
         '</span>' +
       '</div>' +
       '<div class="status-row">' +
         '<span>Tần suất gửi dữ liệu</span>' +
-        '<span class="status-row-val">mỗi 10 giây</span>' +
+        '<span class="status-row-val">mỗi 5 giây</span>' +
       '</div>' +
     '</div>' +
 

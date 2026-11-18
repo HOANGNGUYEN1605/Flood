@@ -34,7 +34,7 @@ export async function fetchTinhHinh(loaiXe, khuVuc) {
  * Lấy lịch sử đo mực nước của một trạm để vẽ biểu đồ
  */
 export async function fetchLichSuTram(maTram) {
-  const res = await fetch('/api/tram/' + encodeURIComponent(maTram) + '/lich-su?gio=6', { cache: 'no-store' });
+  const res = await fetch('/api/tram/' + encodeURIComponent(maTram) + '/lich-su?phut=30', { cache: 'no-store' });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return await res.json();
 }
